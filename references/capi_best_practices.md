@@ -1,12 +1,19 @@
-# Meta Pixel & CAPI Best Practices Reference
+# Meta Conversions API (CAPI) Best Practices Reference
 
-This document contains the condensed knowledge base for evaluating and improving Meta Pixel and Conversions API implementations. Use it when writing the business impact and developer action plan sections of the audit report.
+This document contains the condensed knowledge base for evaluating and improving Meta Conversions API implementations. Use it when writing the business impact and developer action plan sections of the audit report.
 
 ## Setup Architecture
 
 The **Redundant Setup** (Pixel + CAPI together) is Meta's recommended architecture. It provides maximum event coverage and reliability because browser-side tracking captures real-time user interactions while server-side tracking bypasses ad blockers and browser privacy restrictions. When using a redundant setup, **deduplication is mandatory** to prevent double-counting events.
 
 A **CAPI-only setup** is acceptable but less preferred. It misses real-time browser interactions and requires the server to capture all user data. A **Pixel-only setup** is the weakest because it is vulnerable to ad blockers, iOS privacy changes, and cookie restrictions that can cause 20–40% data loss.
+
+## Implementation Methods
+
+1. **Parameter Builder Library (Recommended):** A lightweight SDK (`capi-param-builder`) that automatically handles cookie extraction, IP address formatting (IPv6 preferred), and PII hashing. It uses a combined client-side and server-side workflow to maximize match keys.
+2. **Meta Business SDK:** The official SDKs (Node.js, Python, PHP, Ruby, Java) that provide strongly typed classes (`EventRequest`, `ServerEvent`, `UserData`) and automatic hashing.
+3. **Direct HTTP API:** Pure HTTP requests (`fetch`, `axios`, `requests`) to `graph.facebook.com/v{version}/{pixel_id}/events`. Requires manual hashing and cookie extraction.
+4. **Partner Integrations:** Built-in solutions like Shopify, WooCommerce, or GTM Server-Side.
 
 ## Event Match Quality (EMQ)
 
@@ -27,17 +34,15 @@ To reach the EMQ threshold, implement parameters in this priority order:
 
 | Parameter | CAPI Field | Hash? | Impact |
 |-----------|-----------|-------|--------|
-| IP Address | `client_ip_address` | No | Baseline matching |
-| User Agent | `client_user_agent` | No | Baseline matching |
+| IP Address | `client_ip_address` | No | Critical for Identity Prediction (~70% match rate) |
+| User Agent | `client_user_agent` | No | Critical for Identity Prediction (~70% match rate) |
 | Browser ID | `fbp` (from `_fbp` cookie) | No | +0.5–1 EMQ point |
 
-Note: Either `fbp` (Browser ID) or `external_id` is sufficient. Sending both does not add additional EMQ benefit.
-
-**Click ID (target: match browser coverage):** The `fbc` parameter (from the `_fbc` cookie) provides a 100% match rate when present. For redundant setups, server-side `fbc` coverage should match browser-side coverage. For CAPI-only setups, target 25% coverage.
+**Click ID (target: match browser coverage):** The `fbc` parameter (from the `_fbc` cookie) provides a 100% match rate when present. It is a **HIGH priority** parameter, on par with email.
 
 | Parameter | CAPI Field | Hash? | Impact |
 |-----------|-----------|-------|--------|
-| Click ID | `fbc` (from `_fbc` cookie) | No | +0.5–1 EMQ point, 100% match rate |
+| Click ID | `fbc` (from `_fbc` cookie) | No | HIGH priority, 100% match rate |
 
 **High PII (send one close to 100%):** Email and phone are the highest-impact PII parameters. Sending just one of them close to 100% coverage can improve EMQ by 2–3 points.
 
@@ -69,59 +74,22 @@ The recommended method is **Event ID + Event Name**. Both the browser pixel and 
 - Browser: `fbq('track', 'Purchase', {value: 12, currency: 'USD'}, {eventID: 'unique-123'})`
 - Server: `event_id: 'unique-123'` in the CAPI payload
 
-The `event_name` must also match exactly (case-sensitive). Events are deduplicated within a 48-hour window. The alternative method (using `fbp`/`external_id`) is less reliable and only works when the browser event arrives before the server event.
+The `event_name` must also match exactly (case-sensitive). Events are deduplicated within a 48-hour window.
 
-For redundant setups, **Event Coverage** (server events / browser events) should be >= 100%, and **Deduplication Overlap** should be >= 75%.
+For redundant setups, **Event Coverage** (server events / browser events) should be >= 90%, and **Deduplication Overlap** should be >= 50%.
 
-## Standard Events by Business Type
+## Testing & Validation Tools
 
-| Business Type | Expected Events |
-|---------------|----------------|
-| E-commerce | PageView, ViewContent, AddToCart, InitiateCheckout, AddPaymentInfo, Purchase |
-| Lead Generation | PageView, ViewContent, Lead, CompleteRegistration, Contact |
-| SaaS / Subscription | PageView, ViewContent, Lead, StartTrial, Subscribe, Purchase |
-| Content / Media | PageView, ViewContent, Search |
-
-## Standard Events Parameter Reference
-
-| Event | Required Params | Key Optional Params | Business Purpose |
-|-------|----------------|--------------------|--------------------|
-| PageView | — | — | Baseline tracking, audience building |
-| ViewContent | — | `content_ids`, `value`, `currency` | Product interest, dynamic ads |
-| AddToCart | — | `content_ids`, `value`, `currency` | Purchase intent, dynamic ads |
-| InitiateCheckout | — | `value`, `currency`, `num_items` | Funnel optimization |
-| AddPaymentInfo | — | `value`, `currency` | Funnel optimization |
-| Purchase | `value`, `currency` | `content_ids`, `content_type` | ROAS optimization, dynamic ads |
-| Lead | — | `value`, `currency` | Lead generation optimization |
-| CompleteRegistration | — | `value`, `currency` | Sign-up tracking |
-| Search | — | `search_string`, `content_ids` | Search behavior, dynamic ads |
-| Subscribe | — | `value`, `currency`, `predicted_ltv` | Subscription optimization |
-| StartTrial | — | `value`, `currency` | Trial-to-paid optimization |
-| Contact | — | — | Lead generation |
-
-## Great Setup Examples
-
-**Redundant Setup (Gold Standard):**
-- Event Coverage: 120%, Deduplication (event_id): 80% overlap
-- Foundation: IP 100%, UA 100%, Browser ID 100%
-- ClickID: Browser 10%, Server 10% (matched)
-- High PII: Email 90%
-- Medium PII: First Name 95%
-
-**CAPI-Only Setup (Acceptable):**
-- Foundation: IP 100%, UA 100%, Browser ID 100%
-- ClickID: Server 25%
-- High PII: Email 90%
-- Medium PII: First Name 95%
+1. **Test Events Tool:** Found in Events Manager. Generates a `test_event_code` to include in CAPI payloads. Validates `event_id`, customer info params, custom params, and dedup status. Events appear within 30 seconds.
+2. **Payload Helper:** Validates CAPI payload structure before sending and generates code snippets.
+3. **Network Console:** Verify `event_id` in network traffic to ensure browser and server IDs match exactly.
 
 ## Common Code Patterns by Framework
 
-**Next.js / React:** Pixel is typically initialized in `_app.tsx` or a layout component. CAPI calls are made from API routes (`pages/api/` or `app/api/`). The `_fbc` and `_fbp` cookies can be read server-side from the request headers.
+**Next.js / React:** CAPI calls are made from API routes (`pages/api/` or `app/api/`). The `_fbc` and `_fbp` cookies can be read server-side from the request headers.
 
 **Django / Flask:** CAPI calls are made from view functions or middleware. `request.META['REMOTE_ADDR']` provides IP, `request.META['HTTP_USER_AGENT']` provides UA, and `request.COOKIES.get('_fbc')` provides the click ID.
 
 **Express.js:** CAPI calls from route handlers. `req.ip` for IP, `req.headers['user-agent']` for UA, `req.cookies._fbc` for click ID (requires `cookie-parser` middleware).
-
-**Shopify Liquid:** Pixel is typically in `theme.liquid`. CAPI is handled by the Shopify Facebook & Instagram app or custom webhooks. Check the data sharing level in the app settings.
 
 **PHP / Laravel:** CAPI calls from controllers. `$_SERVER['REMOTE_ADDR']` for IP, `$_SERVER['HTTP_USER_AGENT']` for UA, `$_COOKIE['_fbc']` for click ID.

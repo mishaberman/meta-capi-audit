@@ -1,13 +1,15 @@
 ---
 name: meta-capi-audit
-description: Audits a GitHub repository's source code specifically for Meta Conversions API (CAPI) implementation quality, onboarding status, and Event Match Quality (EMQ) optimization. Clones the repo, scans backend code for CAPI payloads, user data hashing, deduplication logic, and security. Produces a scored report with business impact analysis and step-by-step developer action plans for server-side improvements. Use this skill when an advertiser wants to evaluate or optimize their server-side CAPI setup, independently of their browser pixel.
+description: Audits a GitHub repository's source code for Meta Conversions API (CAPI) implementation quality, onboarding status, and Event Match Quality (EMQ) optimization. Clones the repo, scans backend code for CAPI payloads, user data hashing, deduplication logic, and security. Supports multiple CAPI backend methods (Direct HTTP, Meta Business SDK, Parameter Builder Library, Partner Integrations). Produces a scored report with business impact analysis and step-by-step developer action plans for server-side improvements, including actual implementation code using the Parameter Builder Library or pure HTTP calls.
 ---
 
-# Meta Conversions API (CAPI) Code Audit Skill
+# Meta Conversions API (CAPI) Code Audit & Implementation Skill
 
 ## Purpose
 
-Analyze a GitHub repository to determine the current implementation status of the Meta Conversions API (server-side). Produce a comprehensive diagnostic report that scores the CAPI setup, evaluates Event Match Quality (EMQ) potential based on user data parameters, checks deduplication logic, and provides file-specific, code-level developer instructions to improve the server-side integration.
+Analyze a GitHub repository to determine the current implementation status of the Meta Conversions API (server-side). Produce a comprehensive diagnostic report that scores the CAPI setup, evaluates Event Match Quality (EMQ) potential based on user data parameters, checks deduplication logic, and provides file-specific, code-level developer instructions to improve or implement the server-side integration.
+
+This skill supports auditing existing setups AND providing implementation guidance for new setups using pure HTTP calls, the Meta Business SDK, or the CAPI Parameter Builder Library.
 
 *Note: This skill focuses exclusively on CAPI. It does not audit Meta Pixel base code or browser-side event tracking, except to verify that deduplication IDs (`event_id`) are being passed correctly.*
 
@@ -43,11 +45,12 @@ Identify the backend tech stack by checking for framework markers. This determin
 
 | Marker File / Pattern | Tech Stack | Expected CAPI Method |
 |----------------------|------------|----------------------|
-| `package.json` with `express` | Node.js / Express | `facebook-nodejs-business-sdk` or `fetch`/`axios` |
-| `package.json` with `next` | Next.js API Routes | `facebook-nodejs-business-sdk` or `fetch` |
-| `requirements.txt` with `django` | Python / Django | `facebook_business` SDK or `requests` |
-| `composer.json` | PHP / Laravel | `facebook/php-business-sdk` or `curl` |
-| `Gemfile` with `rails` | Ruby on Rails | `facebookbusiness` SDK or `Net::HTTP` |
+| `package.json` with `express` | Node.js / Express | `facebook-nodejs-business-sdk`, `capi-param-builder`, or `fetch`/`axios` |
+| `package.json` with `next` | Next.js API Routes | `facebook-nodejs-business-sdk`, `capi-param-builder`, or `fetch` |
+| `requirements.txt` with `django` | Python / Django | `facebook_business` SDK, `capi-param-builder`, or `requests` |
+| `composer.json` | PHP / Laravel | `facebook/php-business-sdk`, `capi-param-builder`, or `curl` |
+| `Gemfile` with `rails` | Ruby on Rails | `facebookbusiness` SDK, `capi-param-builder`, or `Net::HTTP` |
+| `package.json` with `@shopify/shopify-api` | Shopify Custom App | Shopify Webhooks + Direct HTTP API |
 
 ### Phase 2: Automated Code Scanning
 
@@ -62,7 +65,7 @@ Read `capi_audit_results.json` with the `file` tool. The script returns:
 | Field | What It Tells You |
 |-------|------------------|
 | `capi_status` | Implemented, Partial, or Not Found |
-| `capi_method` | Direct HTTP API, Node SDK, Python SDK, etc. |
+| `capi_method` | Direct HTTP API, Node SDK, Python SDK, Parameter Builder Library, Partner Integration, etc. |
 | `detected_server_events` | List of events sent via CAPI |
 | `user_data_fields` | Which customer information parameters are collected |
 | `has_hashing` | Whether SHA-256 hashing is used for PII |
@@ -73,9 +76,9 @@ Read `capi_audit_results.json` with the `file` tool. The script returns:
 
 Use the `match` tool (`grep` action) and `file` tool (`read` action with line ranges) to inspect the specific backend files identified in Phase 2. Evaluate each dimension:
 
-**3a. CAPI Payload Construction**
-- Is the CAPI endpoint (`graph.facebook.com/.../events`) or a Meta Business SDK being used?
-- Check the server payload for required fields: `event_name`, `event_time`, `action_source` (must be `"website"`), `event_source_url`, `user_data`.
+**3a. CAPI Payload Construction & Backend Method**
+- Identify the exact backend method used: Direct HTTP API, Meta Business SDK, Parameter Builder Library, or a Partner Integration (e.g., Shopify, WooCommerce, GTM Server-Side).
+- Check the server payload for required fields: `event_name`, `event_time`, `action_source` (must be `"website"` for web events), `event_source_url`, `user_data`.
 - Are events sent asynchronously or in batches to avoid blocking the main thread?
 
 **3b. User Data & EMQ Optimization**
@@ -84,6 +87,7 @@ Use the `match` tool (`grep` action) and `file` tool (`read` action with line ra
 - Check for High PII: `em` (email) or `ph` (phone).
 - Check for Medium PII: `fn`, `ln`, `ct`, `st`, `zp`.
 - **CRITICAL:** All PII (`em`, `ph`, `fn`, `ln`, etc.) MUST be SHA-256 hashed. Foundation parameters (`client_ip_address`, `client_user_agent`, `fbc`, `fbp`) MUST NOT be hashed.
+- **Invalid Combinations:** Flag if the payload only contains broad combinations like `ct + country + st + zp + ge + client_user_agent` as these will be rejected by Meta.
 
 **3c. Deduplication Logic**
 - Does the CAPI payload include `event_id`?
@@ -144,7 +148,7 @@ Generate a Markdown report saved to `/home/ubuntu/meta_capi_audit_report.md`. Us
 4. **EMQ & User Data Analysis** — Table evaluating `client_ip_address`, `client_user_agent`, `fbc`, `fbp`, and PII. Explicitly state the impact of missing fields (e.g., "Missing IP Address breaks Identity Prediction, which yields ~70% match rate").
 5. **Click ID (`fbc`) Deep Dive** — Dedicated section emphasizing the importance of `fbc` collection and inclusion in the server payload.
 6. **Improvement Opportunities** — Prioritized list (Critical → High → Medium) with business impact.
-7. **Developer Action Plan** — Exact file paths, current code, and corrected code snippets for backend fixes.
+7. **Developer Action Plan** — Exact file paths, current code, and corrected code snippets for backend fixes. If no CAPI exists, provide full implementation code using the Parameter Builder Library or Direct HTTP API.
 
 ### Phase 6: Deliver Report
 
@@ -154,10 +158,20 @@ Use the `message` tool with `type: result`:
 
 ## Key Rules
 
+**Implementation Guidance:** If the repository has no CAPI implementation, the Developer Action Plan MUST provide complete code to implement it. Recommend the **Parameter Builder Library** (`capi-param-builder`) as the primary method for new setups, as it handles cookie extraction, IP address formatting, and PII hashing automatically.
+
+**Parameter Builder Library (PBL) Workflow:**
+When recommending PBL, explain the combined Client + Server workflow:
+1. Client loads `clientParamBuilder` and calls `.processAndCollectAllParams` (with `getIpFn` for IPv6).
+2. Client passes first-party cookies to the backend.
+3. Server calls `builder.processRequest` and sets recommended cookies in response headers.
+4. Server calls `getFbc()`, `getFbp()`, `getClientIpAddress()`, and `getNormalizedAndHashedPII()`.
+5. Server sends the payload to Meta.
+
 **Hashing:** All PII parameters (`em`, `ph`, `fn`, `ln`, `ge`, `db`, `ct`, `st`, `zp`, `country`) MUST be normalized (lowercase, trim whitespace) and SHA-256 hashed before sending via CAPI. The following MUST NOT be hashed: `client_ip_address`, `client_user_agent`, `fbc`, `fbp`, `external_id`.
 
 **Deduplication:** The server `event_id` must exactly match the browser `eventID`. The recommended method is Event ID + Event Name.
 
 **Access Token Security:** The CAPI access token should NEVER be hardcoded in source code or exposed in client-side bundles. It must be stored in environment variables.
 
-**IP Address:** The `client_ip_address` must be the IP of the *user's browser*, not the IP of the server making the CAPI call. This usually requires extracting it from `req.ip` or the `X-Forwarded-For` header.
+**IP Address:** The `client_ip_address` must be the IP of the *user's browser*, not the IP of the server making the CAPI call. This usually requires extracting it from `req.ip` or the `X-Forwarded-For` header. IPv6 is preferred over IPv4.

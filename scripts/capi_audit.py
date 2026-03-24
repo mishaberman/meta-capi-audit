@@ -2,6 +2,7 @@
 """
 Meta Conversions API (CAPI) Repository Audit Scanner
 Scans a codebase specifically for server-side Meta CAPI implementation patterns.
+Supports Direct HTTP, Meta Business SDK, Parameter Builder Library, and Partner Integrations.
 Outputs a structured JSON with findings, detected events, and quality indicators.
 """
 import os
@@ -45,6 +46,25 @@ CAPI_PATTERNS = {
         (r"UserData", "UserData class usage"),
         (r"CustomData", "CustomData class usage"),
     ],
+    "param_builder": [
+        (r"capi-param-builder", "Parameter Builder Library import/require"),
+        (r"clientParamBuilder", "Client-side Parameter Builder instance"),
+        (r"processAndCollectAllParams", "Parameter Builder processAndCollectAllParams"),
+        (r"getNormalizedAndHashedPII", "Parameter Builder getNormalizedAndHashedPII"),
+        (r"builder\.processRequest", "Parameter Builder processRequest"),
+        (r"builder\.getCookiesToSet", "Parameter Builder getCookiesToSet"),
+        (r"getFbc\(\)", "Parameter Builder getFbc"),
+        (r"getFbp\(\)", "Parameter Builder getFbp"),
+        (r"getClientIpAddress\(\)", "Parameter Builder getClientIpAddress"),
+    ],
+    "partner_integrations": [
+        (r"shopify-api-node", "Shopify API Node (potential CAPI)"),
+        (r"@shopify/shopify-api", "Shopify API (potential CAPI)"),
+        (r"facebook-for-woocommerce", "WooCommerce Facebook Plugin"),
+        (r"WC_Facebookcommerce", "WooCommerce Facebook Class"),
+        (r"gtm-server-side", "GTM Server-Side"),
+        (r"facebook_conversions_api", "Tealium/Segment CAPI Destination"),
+    ],
     "payload_required": [
         (r"['\"]?event_name['\"]?\s*[:=]", "event_name field"),
         (r"['\"]?event_time['\"]?\s*[:=]", "event_time field"),
@@ -85,9 +105,10 @@ SECURITY_PATTERNS = [
 COOKIE_PATTERNS = [
     (r"_fbc", "fbc cookie reference"),
     (r"_fbp", "fbp cookie reference"),
-    (r"req(?:uest)?\.cookies.*_fb[cp]", "Server-side cookie extraction"),
-    (r"\$_COOKIE\['?_fb[cp]'", "PHP cookie extraction"),
-    (r"request\.COOKIES\.get\('?_fb[cp]'", "Python/Django cookie extraction"),
+    (r"_fbi", "fbi cookie reference (Parameter Builder)"),
+    (r"req(?:uest)?\.cookies.*_fb[cpi]", "Server-side cookie extraction"),
+    (r"\$_COOKIE\['?_fb[cpi]'", "PHP cookie extraction"),
+    (r"request\.COOKIES\.get\('?_fb[cpi]'", "Python/Django cookie extraction"),
 ]
 
 # ---------------------------------------------------------------------------
@@ -173,6 +194,10 @@ def detect_tech_stack(repo_path):
                         stack["backend"].append("Express.js")
                     if "facebook-nodejs-business-sdk" in deps:
                         stack["integrations"].append("Meta Business SDK (Node.js)")
+                    if "capi-param-builder" in deps:
+                        stack["integrations"].append("Parameter Builder Library (Node.js)")
+                    if "@shopify/shopify-api" in deps:
+                        stack["integrations"].append("Shopify API")
                 except Exception:
                     pass
             elif f == "requirements.txt" or f == "Pipfile":
@@ -186,6 +211,8 @@ def detect_tech_stack(repo_path):
                         stack["backend"].append("FastAPI")
                     if "facebook-business" in content.lower():
                         stack["integrations"].append("Meta Business SDK (Python)")
+                    if "capi-param-builder" in content.lower():
+                        stack["integrations"].append("Parameter Builder Library (Python)")
                 except Exception:
                     pass
             elif f == "composer.json":
@@ -196,6 +223,8 @@ def detect_tech_stack(repo_path):
                         stack["backend"].append("Laravel")
                     if "facebook/php-business-sdk" in deps:
                         stack["integrations"].append("Meta Business SDK (PHP)")
+                    if "facebook/capi-param-builder" in deps:
+                        stack["integrations"].append("Parameter Builder Library (PHP)")
                 except Exception:
                     pass
 
@@ -279,7 +308,8 @@ def audit_repo(repo_path):
 
     has_capi = bool(capi_findings.get("endpoint") or capi_findings.get("sdk_python") or
                     capi_findings.get("sdk_node") or capi_findings.get("sdk_php") or
-                    capi_findings.get("sdk_ruby") or capi_findings.get("sdk_classes"))
+                    capi_findings.get("sdk_ruby") or capi_findings.get("sdk_classes") or
+                    capi_findings.get("param_builder") or capi_findings.get("partner_integrations"))
 
     capi_status = "Implemented" if has_capi else "Not Found"
 
@@ -295,7 +325,11 @@ def audit_repo(repo_path):
 
     # CAPI SDK method
     capi_method = "None"
-    if capi_findings.get("sdk_python"):
+    if capi_findings.get("param_builder"):
+        capi_method = "Parameter Builder Library"
+    elif capi_findings.get("partner_integrations"):
+        capi_method = "Partner Integration (e.g., Shopify, GTM)"
+    elif capi_findings.get("sdk_python"):
         capi_method = "Meta Business SDK (Python)"
     elif capi_findings.get("sdk_node"):
         capi_method = "Meta Business SDK (Node.js)"
