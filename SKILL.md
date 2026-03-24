@@ -23,6 +23,7 @@ The advertiser provides:
 | Branch | No | Defaults to main/master |
 | Business Type | No | E-commerce, Lead Gen, SaaS, Content — guides event expectations |
 | Test Event Code | No | e.g., `TEST12345`. If provided, include it in all generated code snippets. |
+| Create PR | No | `true` or `false`. If true, automatically create a GitHub Pull Request with the suggested fixes. |
 
 Example prompt:
 ```
@@ -30,6 +31,7 @@ Audit my backend code for Meta CAPI setup.
 - Repo: mycompany/ecommerce-backend
 - Branch: staging
 - Test Event Code: TEST84729
+- Create PR: true
 ```
 
 ## Execution Flow
@@ -152,11 +154,25 @@ Generate a Markdown report saved to `/home/ubuntu/meta_capi_audit_report.md`. Us
 6. **Improvement Opportunities** — Prioritized list (Critical → High → Medium) with business impact.
 7. **Developer Action Plan** — Exact file paths, current code, and corrected code snippets for backend fixes. If no CAPI exists, provide full implementation code using the Parameter Builder Library or Direct HTTP API.
 
-### Phase 6: Deliver Report
+### Phase 6: Pull Request Creation (If Requested)
+
+If the advertiser requested `Create PR: true`:
+1. Create a new branch from the target branch: `git checkout -b fix/meta-capi-optimization`
+2. Apply the exact code changes outlined in the Developer Action Plan directly to the files in `/home/ubuntu/repo_to_audit`. This includes:
+   - Adding deduplication logic (`event_id`) to both frontend and backend
+   - Fixing parameter naming/spelling
+   - Adding missing PII parameters and hashing logic
+   - Preventing duplicate event firing
+3. Commit the changes: `git commit -am "Optimize Meta CAPI implementation"`
+4. Push the branch and create a PR using the GitHub CLI: `gh pr create --title "Optimize Meta CAPI Implementation" --body-file /home/ubuntu/meta_capi_audit_report.md`
+5. Note the PR URL to include in the final delivery.
+
+### Phase 7: Deliver Report
 
 Use the `message` tool with `type: result`:
 1. Attach `/home/ubuntu/meta_capi_audit_report.md`.
 2. In the message text, provide a concise summary: CAPI status, score, number of issues by priority, and the single most impactful action to take first.
+3. If a PR was created, prominently include the link to the GitHub Pull Request.
 
 ## Key Rules
 

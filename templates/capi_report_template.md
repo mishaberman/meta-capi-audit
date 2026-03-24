@@ -128,6 +128,7 @@ Once the changes are deployed, validate the setup using these tools:
 
 **Immediate Actions (This Sprint):**
 {Top 1–3 actions that will have the biggest impact}
+*(If a Pull Request was created, include the link here: "✅ A Pull Request with these fixes has been automatically generated: [Link to PR]")*
 
 **Short-Term (Next 2 Weeks):**
 {Additional improvements}
