@@ -22,12 +22,14 @@ The advertiser provides:
 | GitHub Repository | Yes | URL or `owner/repo` format |
 | Branch | No | Defaults to main/master |
 | Business Type | No | E-commerce, Lead Gen, SaaS, Content — guides event expectations |
+| Test Event Code | No | e.g., `TEST12345`. If provided, include it in all generated code snippets. |
 
 Example prompt:
 ```
 Audit my backend code for Meta CAPI setup.
 - Repo: mycompany/ecommerce-backend
 - Branch: staging
+- Test Event Code: TEST84729
 ```
 
 ## Execution Flow
@@ -159,6 +161,8 @@ Use the `message` tool with `type: result`:
 ## Key Rules
 
 **Implementation Guidance:** If the repository has no CAPI implementation, the Developer Action Plan MUST provide complete code to implement it. Recommend the **Parameter Builder Library** (`capi-param-builder`) as the primary method for new setups, as it handles cookie extraction, IP address formatting, and PII hashing automatically.
+
+**Test Event Code:** If the advertiser provides a `test_event_code` (e.g., `TEST12345`), you MUST include it in all generated code snippets in the Developer Action Plan. This allows the advertiser to immediately verify the implementation in the Events Manager Test Events tab.
 
 **Parameter Builder Library (PBL) Workflow:**
 When recommending PBL, explain the combined Client + Server workflow:

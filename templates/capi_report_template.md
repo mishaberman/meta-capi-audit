@@ -4,6 +4,7 @@
 **Branch:** `{branch}`
 **Analysis Date:** {date}
 **Backend Tech Stack:** {tech_stack}
+**Test Event Code:** {test_event_code_if_provided}
 
 ---
 
@@ -117,7 +118,7 @@ The Click ID (`fbc`) is a **HIGH priority** parameter for identity matching, on 
 
 Once the changes are deployed, validate the setup using these tools:
 
-1. **Test Events Tool:** Go to Events Manager → Data Sources → Settings → Test Events. Include the `test_event_code` in your server payload to verify events are received and deduplicated correctly.
+1. **Test Events Tool:** Go to Events Manager → Data Sources → Settings → Test Events. Include the `test_event_code` {insert code if provided} in your server payload to verify events are received and deduplicated correctly.
 2. **Payload Helper:** Use the [Payload Helper](https://developers.facebook.com/docs/marketing-api/conversions-api/payload-helper) to validate your JSON structure before sending.
 3. **Events Manager:** Monitor the Event Deduplication tab (target: ≥50% overlap) and EMQ scores (target: ≥6.0) over the next 7 days.
 
