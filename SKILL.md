@@ -145,22 +145,95 @@ Instead of automatically creating a PR, use an interactive workflow to ensure th
 2. **Ask for Permission:** In the same message, ask the user: *"Would you like me to automatically apply these fixes and create a Pull Request for you to review?"*
 3. **If Accepted:**
    - Create a new branch: `git checkout -b fix/meta-capi-optimization`
+   - **Initialize the Action History Log:** Create `/home/ubuntu/capi_action_history.md` and begin recording every action taken. This file serves as a revert guide so the user can undo any change.
    - Apply the exact code changes outlined in the Developer Action Plan.
    - **Make granular, logical commits** for each specific fix (e.g., `fix(capi): add event_id deduplication`, `feat(capi): add SHA-256 hashing`).
+   - **After each commit**, append an entry to the action history log with: the commit hash, commit message, files changed, and the `git revert` command to undo it.
    - Push the branch and create the PR using `gh pr create` with a detailed body (including before/after diffs).
-   - Send a message with the PR link and ask: *"The PR is ready for your review. Once you merge it, would you like me to inject a `test_event_code` so you can verify the events in Events Manager?"*
+   - **Finalize the Action History Log** with a summary section that includes: the full branch name, the PR URL, the list of all commits in order, and a single command to revert the entire branch (`git revert <oldest>..HEAD` or `git reset`).
+   - **Deliver the log** alongside the PR link as an attachment.
+   - Send a message with the PR link and ask: *"The PR is ready for your review. I've also attached an action history log with revert commands for every change. Once you merge it, would you like me to inject a `test_event_code` so you can verify the events in Events Manager?"*
 4. **If Rejected / Manual:** Acknowledge their choice and offer to help if they have questions while implementing the fixes manually.
+
+#### Action History Log Format
+
+The action history log (`/home/ubuntu/capi_action_history.md`) MUST follow this structure:
+
+```markdown
+# CAPI Audit — Action History Log
+
+**Repository:** `owner/repo`
+**Branch:** `fix/meta-capi-optimization`
+**Date:** YYYY-MM-DD
+**PR:** #N (URL)
+
+## Actions Performed
+
+### 1. [commit message]
+- **Commit:** `abc1234`
+- **Files Changed:** `file1.js`, `file2.ts`
+- **What Changed:** Brief description of the change
+- **Revert Command:** `git revert abc1234`
+
+### 2. [commit message]
+- **Commit:** `def5678`
+- **Files Changed:** `file3.js`
+- **What Changed:** Brief description of the change
+- **Revert Command:** `git revert def5678`
+
+## Quick Revert Guide
+
+**Revert a single change:** `git revert <commit_hash>`
+**Revert all changes (keep history):** `git revert abc1234..HEAD`
+**Revert all changes (discard history):** `git reset --hard <commit_before_changes>`
+**Close the PR without merging:** `gh pr close <PR_NUMBER>`
+```
 
 ### Phase 6: Interactive Test Event Code Injection / Removal
 
 If the user agrees to inject a test event code (either after merging the PR, or as a standalone request):
 1. **Ask for the Code:** If they haven't provided one, ask: *"What test event code should I use? (e.g., TEST12345)"*
-2. **Inject:** Find the CAPI payload construction and inject `test_event_code: '<CODE>'` at the top level.
+2. **Inject — Hardcode directly into the payload construction:**
+   - Find the function that builds the CAPI payload (e.g., `sendCAPIEvent`, `buildEventPayload`, or the object literal that constructs the POST body).
+   - Add `test_event_code: '<CODE>'` as a hardcoded property directly in the payload object. Do NOT rely on URL query parameter parsing or conditional logic — the test code must be sent with every single event unconditionally.
+   - **Frontend example (before):**
+     ```typescript
+     const payload = {
+       event_name: eventName,
+       event_time: Math.floor(Date.now() / 1000),
+       action_source: 'website',
+       // ...
+     };
+     // Include test_event_code if present in URL params
+     const testEventCode = getTestEventCode();
+     if (testEventCode) {
+       (payload as Record<string, unknown>).test_event_code = testEventCode;
+     }
+     ```
+   - **Frontend example (after injection):**
+     ```typescript
+     const payload = {
+       event_name: eventName,
+       event_time: Math.floor(Date.now() / 1000),
+       action_source: 'website',
+       // ...
+       test_event_code: 'TEST12345', // TODO: REMOVE before production
+     };
+     ```
+   - **Backend:** Also ensure the backend passes `test_event_code` through to the Graph API at the **top level** of the POST body (not inside each event object). Per [Meta's main body parameters docs](https://developers.facebook.com/docs/marketing-api/conversions-api/parameters/main-body), `test_event_code` is a top-level parameter alongside `data` and `access_token`:
+     ```javascript
+     const requestBody = {
+       data: [payload],
+       access_token: ACCESS_TOKEN,
+       test_event_code: event.test_event_code || undefined, // pass through from frontend
+     };
+     ```
 3. **Commit & Push Directly:** Do NOT create a PR for this temporary testing step. Commit directly to the current deployment branch:
-   - `git commit -am "chore(capi): inject test_event_code for validation"`
+   - `git commit -am "chore(capi): inject test_event_code <CODE> for validation"`
    - `git push origin <branch>`
-4. **Wait for Validation:** Tell the user: *"The test code is live. Please trigger some events on your site and check the Events Manager Test Events tab. Let me know when you're done, and I will remove the test code."*
-5. **Remove:** Once they confirm, strip the `test_event_code`, commit (`chore(capi): remove test_event_code`), and push directly.
+   - **Log the action** in `/home/ubuntu/capi_action_history.md` (create if it doesn't exist) with the commit hash, files changed, and revert command.
+4. **Wait for Validation:** Tell the user: *"The test code is live. Please trigger some events on your site and check the Events Manager Test Events tab. I've saved the action history with revert commands in case you need to undo this. Let me know when you're done, and I will remove the test code."*
+5. **Remove:** Once they confirm, remove the hardcoded `test_event_code` property from the payload, commit (`chore(capi): remove test_event_code`), push directly, and **log the removal action** in the history log.
 
 ## Key Rules
 
@@ -168,7 +241,7 @@ If the user agrees to inject a test event code (either after merging the PR, or 
 
 **Test Event Code Detection:** The audit MUST check for any active `test_event_code` in the CAPI payload code. A leftover test code in production is a **CRITICAL** issue because it routes all events to the Test Events tab in Events Manager, meaning they are NOT processed for ad delivery, attribution, or optimization. If found, it MUST appear as the first item in "What Needs Improvement" and the first action in the Developer Action Plan.
 
-**Test Event Code Injection:** If the advertiser provides a `test_event_code` (e.g., `TEST12345`), you MUST include it in all generated code snippets in the Developer Action Plan. If they ask to inject it directly, modify the repo files and push the commit immediately without a PR.
+**Test Event Code Injection:** If the advertiser provides a `test_event_code` (e.g., `TEST12345`), you MUST include it in all generated code snippets in the Developer Action Plan. When injecting directly into a repo, you MUST hardcode the test code as a literal property in the CAPI payload object (e.g., `test_event_code: 'TEST12345'`). Do NOT rely on URL query parameter parsing, conditional checks, or environment variables for injection — the code must unconditionally send the test code with every event. Push the commit immediately without a PR.
 
 **Parameter Builder Library (PBL) Workflow:**
 When recommending PBL, explain the combined Client + Server workflow:
