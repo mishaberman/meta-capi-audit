@@ -6,7 +6,7 @@ This document contains the condensed knowledge base for evaluating and improving
 
 The **Redundant Setup** (Pixel + CAPI together) is Meta's recommended architecture. It provides maximum event coverage and reliability because browser-side tracking captures real-time user interactions while server-side tracking bypasses ad blockers and browser privacy restrictions. When using a redundant setup, **deduplication is mandatory** to prevent double-counting events.
 
-A **CAPI-only setup** is acceptable but less preferred. It misses real-time browser interactions and requires the server to capture all user data. A **Pixel-only setup** is the weakest because it is vulnerable to ad blockers, iOS privacy changes, and cookie restrictions that can cause 20–40% data loss.
+A **CAPI-only setup** is acceptable but less preferred. It misses real-time browser interactions and requires the server to capture all user data. A **Pixel-only setup** is the weakest because it is vulnerable to ad blockers, iOS privacy changes, and cookie restrictions that can cause significant data loss.
 
 ## Implementation Methods
 
@@ -38,32 +38,32 @@ To reach the EMQ threshold, implement parameters in this priority order:
 
 | Parameter | CAPI Field | Hash? | Impact |
 |-----------|-----------|-------|--------|
-| IP Address | `client_ip_address` | No | Critical for Identity Prediction (~70% match rate) |
-| User Agent | `client_user_agent` | No | Critical for Identity Prediction (~70% match rate) |
-| Browser ID | `fbp` (from `_fbp` cookie) | No | +0.5–1 EMQ point |
+| IP Address | `client_ip_address` | No | HIGH priority — critical for identity resolution |
+| User Agent | `client_user_agent` | No | HIGH priority — critical for identity resolution |
+| Browser ID | `fbp` (from `_fbp` cookie) | No | MEDIUM priority — improves cross-session matching |
 
-**Click ID (target: match browser coverage):** The `fbc` parameter (from the `_fbc` cookie) typically provides one of the strongest match rates of any parameter when valid. It is a **HIGH priority** parameter, on par with email.
-
-| Parameter | CAPI Field | Hash? | Impact |
-|-----------|-----------|-------|--------|
-| Click ID | `fbc` (from `_fbc` cookie) | No | HIGH priority, very strong match rate when valid |
-
-**High PII (maximize coverage):** Email and phone are the highest-impact PII parameters. Sending just one of them at high coverage rates can improve EMQ by 2–3 points.
+**Click ID (target: match browser coverage):** The `fbc` parameter (from the `_fbc` cookie) is one of the highest-priority matching signals when valid. It is a **HIGH priority** parameter, on par with email. See [Meta's Customer Information Parameters documentation](https://developers.facebook.com/docs/marketing-api/conversions-api/parameters/customer-information-parameters) for details on parameter priority.
 
 | Parameter | CAPI Field | Hash? | Impact |
 |-----------|-----------|-------|--------|
-| Email | `em` | SHA-256 | +2–3 EMQ points |
-| Phone | `ph` | SHA-256 | +2–3 EMQ points |
+| Click ID | `fbc` (from `_fbc` cookie) | No | HIGH priority — one of the strongest matching signals when valid |
 
-**Medium PII (maximize coverage):** Sending just one medium PII parameter at high coverage rates adds approximately 0.5 EMQ points.
+**High PII (maximize coverage):** Email and phone are the highest-impact PII parameters. Sending at least one of them at high coverage rates significantly improves EMQ.
 
 | Parameter | CAPI Field | Hash? | Impact |
 |-----------|-----------|-------|--------|
-| First Name | `fn` | SHA-256 | +0.5 EMQ point |
-| Last Name | `ln` | SHA-256 | +0.5 EMQ point |
-| Date of Birth | `db` | SHA-256 | +0.5 EMQ point |
-| City | `ct` | SHA-256 | +0.25 EMQ point |
-| Zip Code | `zp` | SHA-256 | +0.25 EMQ point |
+| Email | `em` | SHA-256 | HIGH priority — one of the strongest matching signals |
+| Phone | `ph` | SHA-256 | HIGH priority — one of the strongest matching signals |
+
+**Medium PII (maximize coverage):** Sending medium PII parameters at high coverage rates provides incremental EMQ improvement.
+
+| Parameter | CAPI Field | Hash? | Impact |
+|-----------|-----------|-------|--------|
+| First Name | `fn` | SHA-256 | MEDIUM priority — incremental improvement |
+| Last Name | `ln` | SHA-256 | MEDIUM priority — incremental improvement |
+| Date of Birth | `db` | SHA-256 | MEDIUM priority — incremental improvement |
+| City | `ct` | SHA-256 | LOW priority — minor improvement |
+| Zip Code | `zp` | SHA-256 | LOW priority — minor improvement |
 
 ## Hashing Requirements
 
@@ -80,7 +80,7 @@ The recommended method is **Event ID + Event Name**. Both the browser pixel and 
 
 The `event_name` must also match exactly (case-sensitive). Events are deduplicated within a 48-hour window.
 
-For redundant setups, **Event Coverage** (server events / browser events) should be >= 90%, and **Deduplication Overlap** should be >= 50%.
+For redundant setups, aim for high **Event Coverage** (server events / browser events) and strong **Deduplication Overlap**. See [Meta's Deduplication documentation](https://developers.facebook.com/docs/marketing-api/conversions-api/deduplicate-pixel-and-server-events) for current recommended thresholds.
 
 ## Testing & Validation Tools
 

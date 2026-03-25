@@ -48,7 +48,7 @@ After the automated scan, the skill performs a manual deep dive into the flagged
 
 **Payload Structure** — Checks for required fields (`event_name`, `event_time`, `action_source`, `event_source_url`) and whether events are sent asynchronously to avoid blocking the main thread.
 
-**EMQ and User Data** — Evaluates Foundation parameters (`client_ip_address`, `client_user_agent`, `fbc`, `fbp`), High PII (`em`, `ph`), and Medium PII (`fn`, `ln`, `ct`, `st`, `zp`). Each missing parameter is mapped to its specific EMQ impact. For example, missing `client_ip_address` breaks Identity Prediction, which otherwise yields approximately 70% match rate.
+**EMQ and User Data** — Evaluates Foundation parameters (`client_ip_address`, `client_user_agent`, `fbc`, `fbp`), High PII (`em`, `ph`), and Medium PII (`fn`, `ln`, `ct`, `st`, `zp`). Each missing parameter is mapped to its priority level and impact on event matching, referencing [Meta's Customer Information Parameters documentation](https://developers.facebook.com/docs/marketing-api/conversions-api/parameters/customer-information-parameters).
 
 **Hashing** — Verifies that all PII parameters are SHA-256 hashed after normalization (lowercase, trim whitespace), and that Foundation parameters (`client_ip_address`, `client_user_agent`, `fbc`, `fbp`) are explicitly NOT hashed.
 
@@ -73,7 +73,7 @@ The report includes a detailed breakdown for every detected event, showing two s
 
 **User Data / PII** — Parameters like `em`, `ph`, `fn`, `ln`, `fbc`, `fbp`, `client_ip_address`, and `client_user_agent` for both browser-side and server-side. This makes it immediately clear which user data is being sent where, and what gaps exist.
 
-The report also includes a dedicated **Click ID (`fbc`) Deep Dive** section that emphasizes the importance of collecting the `fbc` parameter. The `fbc` value typically provides one of the strongest match rates of any parameter and is considered HIGH priority — on par with email. The section covers both cookie-based extraction (`_fbc` cookie) and the `fbclid` URL parameter fallback, including the exact format for constructing the `fbc` value: `fb.1.{timestamp}.{fbclid}`.
+The report also includes a dedicated **Click ID (`fbc`) Deep Dive** section that emphasizes the importance of collecting the `fbc` parameter. The `fbc` value is one of the highest-priority matching signals and is considered on par with email. The section covers both cookie-based extraction (`_fbc` cookie) and the `fbclid` URL parameter fallback, including the exact format for constructing the `fbc` value: `fb.1.{timestamp}.{fbclid}`.
 
 ### 4. Automated Pull Request Creation
 

@@ -151,7 +151,7 @@ Generate a Markdown report saved to `/home/ubuntu/meta_capi_audit_report.md`. Us
 1. **Executive Summary** — CAPI status, score, 2–3 sentence overview.
 2. **CAPI Implementation Status** — Table showing Method, Deduplication, Hashing, and Security.
 3. **Server-Side Event Inventory** — List of events sent via CAPI, detailing Custom Data and User Data parameters for each.
-4. **EMQ & User Data Analysis** — Table evaluating `client_ip_address`, `client_user_agent`, `fbc`, `fbp`, and PII. Explicitly state the impact of missing fields (e.g., "Missing IP Address breaks Identity Prediction, which yields ~70% match rate").
+4. **EMQ & User Data Analysis** — Table evaluating `client_ip_address`, `client_user_agent`, `fbc`, `fbp`, and PII. State the priority level and impact of each missing field, referencing [Meta's Customer Information Parameters documentation](https://developers.facebook.com/docs/marketing-api/conversions-api/parameters/customer-information-parameters).
 5. **Click ID (`fbc`) Deep Dive** — Dedicated section emphasizing the importance of `fbc` collection and inclusion in the server payload.
 6. **Improvement Opportunities** — Prioritized list (Critical → High → Medium) with business impact.
 7. **Developer Action Plan** — Exact file paths, current code, and corrected code snippets for backend fixes. If no CAPI exists, provide full implementation code using the Parameter Builder Library or Direct HTTP API.
