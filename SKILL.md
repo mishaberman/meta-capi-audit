@@ -158,14 +158,19 @@ Generate a Markdown report saved to `/home/ubuntu/meta_capi_audit_report.md`. Us
 
 If the advertiser requested `Create PR: true`:
 1. Create a new branch from the target branch: `git checkout -b fix/meta-capi-optimization`
-2. Apply the exact code changes outlined in the Developer Action Plan directly to the files in `/home/ubuntu/repo_to_audit`. This includes:
-   - Adding deduplication logic (`event_id`) to both frontend and backend
-   - Fixing parameter naming/spelling
-   - Adding missing PII parameters and hashing logic
-   - Preventing duplicate event firing
-3. Commit the changes: `git commit -am "Optimize Meta CAPI implementation"`
-4. Push the branch and create a PR using the GitHub CLI: `gh pr create --title "Optimize Meta CAPI Implementation" --body-file /home/ubuntu/meta_capi_audit_report.md`
-5. Note the PR URL to include in the final delivery.
+2. Apply the exact code changes outlined in the Developer Action Plan directly to the files in `/home/ubuntu/repo_to_audit`.
+3. **Make granular, logical commits** for each specific fix (do NOT make one giant commit). For example:
+   - `git commit -m "fix(capi): add event_id deduplication to frontend and backend"`
+   - `git commit -m "feat(capi): add SHA-256 hashing for email and phone parameters"`
+   - `git commit -m "fix(capi): correct spelling of action_source parameter"`
+   - `git commit -m "feat(capi): extract and forward _fbc and _fbp cookies"`
+4. Push the branch to the remote repository.
+5. **Generate a detailed PR Body:** Create a file at `/home/ubuntu/pr_body.md` that explicitly details the changes made. It MUST include:
+   - A summary of why these changes improve the CAPI integration (e.g., EMQ improvement, deduplication fix).
+   - A "Changes Made" section with a bulleted list of exactly what was modified.
+   - A "File Diffs" section showing the **Before** and **After** code snippets for the most critical changes, so the reviewer can understand the exact logic applied without having to dig through the GitHub diff view.
+6. Create the PR using the GitHub CLI: `gh pr create --title "Optimize Meta CAPI Implementation" --body-file /home/ubuntu/pr_body.md`
+7. Note the PR URL to include in the final delivery.
 
 ### Phase 7: Deliver Report
 
