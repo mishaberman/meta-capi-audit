@@ -13,7 +13,8 @@ This skill focuses exclusively on **direct CAPI integrations** (Direct HTTP API 
 | GitHub Repository | Yes | URL or `owner/repo` format |
 | Branch | No | Defaults to `main` or `master` |
 | Business Type | No | E-commerce, Lead Gen, SaaS, or Content — guides expected event coverage |
-| Test Event Code | No | e.g., `TEST12345`. Woven into all generated code so events appear in Events Manager's Test Events tab. |
+| Test Event Code | No | e.g., `TEST12345`. Can be instantly injected into the repo's CAPI calls and committed directly. |
+| Remove Test Code | No | `true` or `false`. Instantly removes any existing test_event_code from the repo and commits directly. |
 | Create PR | No | If `true`, the skill creates a GitHub Pull Request with granular commits for each fix. |
 
 **Example prompt:**
@@ -23,6 +24,14 @@ Audit my backend code for Meta CAPI setup.
 - Branch: staging
 - Test Event Code: TEST84729
 - Create PR: true
+
+Or for instant test code injection/removal (no PR):
+```
+Inject test event code TEST84729 into mycompany/ecommerce-backend
+```
+```
+Remove the test event code from mycompany/ecommerce-backend
+```
 ```
 
 ---
@@ -92,11 +101,13 @@ If the repository has no existing CAPI implementation, the skill provides comple
 
 For setups that prefer not to use the Parameter Builder Library, the skill provides equivalent code using pure HTTP calls with manual hashing and cookie extraction.
 
-### 6. Live Testing Support
+### 6. Live Testing Support (Instant Injection)
 
-When a `Test Event Code` is provided (e.g., `TEST12345`), the skill weaves it into every generated code snippet and PR. The `test_event_code` parameter is placed at the top level of the CAPI payload alongside `data` and `access_token`, so events appear in the Events Manager Test Events tab within 30 seconds of deployment. 
+When an advertiser needs to test their CAPI integration, the skill can **instantly inject** a `test_event_code` directly into the repository's CAPI payload construction. 
 
-If `Create PR: true` was requested, the skill automatically generates a **secondary Cleanup PR** that removes the `test_event_code` from the codebase. The advertiser can merge the main PR, validate the events in Events Manager, and then immediately merge the Cleanup PR to safely remove the test code before going to production.
+Instead of creating a Pull Request, the skill modifies the code and pushes the commit directly to the branch (e.g., `git commit -am "chore(capi): inject test_event_code"`). This allows the advertiser to immediately deploy and verify events in the Events Manager Test Events tab.
+
+Once testing is complete, the advertiser can simply ask to remove it, and the skill will instantly strip the `test_event_code` from the codebase and push the cleanup commit. No PR review overhead required.
 
 ---
 

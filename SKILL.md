@@ -22,7 +22,8 @@ The advertiser provides:
 | GitHub Repository | Yes | URL or `owner/repo` format |
 | Branch | No | Defaults to main/master |
 | Business Type | No | E-commerce, Lead Gen, SaaS, Content — guides event expectations |
-| Test Event Code | No | e.g., `TEST12345`. If provided, include it in all generated code snippets. |
+| Test Event Code | No | e.g., `TEST12345`. If provided, instantly inject it into the repo's CAPI calls and commit directly. |
+| Remove Test Code | No | `true` or `false`. If true, instantly remove any existing test_event_code from the repo and commit directly. |
 | Create PR | No | `true` or `false`. If true, automatically create a GitHub Pull Request with the suggested fixes. |
 
 Example prompt:
@@ -32,6 +33,14 @@ Audit my backend code for Meta CAPI setup.
 - Branch: staging
 - Test Event Code: TEST84729
 - Create PR: true
+
+Or for instant test code injection/removal (no PR):
+```
+Inject test event code TEST84729 into mycompany/ecommerce-backend
+```
+```
+Remove the test event code from mycompany/ecommerce-backend
+```
 ```
 
 ## Execution Flow
@@ -138,15 +147,16 @@ If the advertiser requested `Create PR: true`:
 6. Create the PR using the GitHub CLI: `gh pr create --title "Optimize Meta CAPI Implementation" --body-file /home/ubuntu/pr_body.md`
 7. Note the PR URL to include in the final delivery.
 
-### Phase 6: Test Event Code Cleanup PR (If Applicable)
+### Phase 6: Instant Test Event Code Injection / Removal
 
-If a `Test Event Code` was provided AND `Create PR: true` was requested:
-1. Create a second branch from the target branch: `git checkout -b chore/remove-capi-test-code`
-2. Remove the `test_event_code` parameter from all files where it was just added.
-3. Commit the removal: `git commit -m "chore(capi): remove test_event_code after validation"`
-4. Push the branch to the remote repository.
-5. Create a second PR: `gh pr create --title "Chore: Remove CAPI Test Event Code" --body "This PR removes the \`test_event_code\` parameter from the CAPI payload. Merge this PR **only after** you have validated the events in the Events Manager Test Events tab using the main optimization PR."`
-6. Note this second PR URL to include in the final delivery as the "Cleanup PR".
+If the advertiser requests to inject or remove a test event code directly (without a full audit or PR):
+1. **Inject:** If `Test Event Code` is provided, find the CAPI payload construction in the code and inject `test_event_code: '<CODE>'` at the top level (alongside `data` and `access_token`).
+2. **Remove:** If `Remove Test Code: true` is requested, find and remove the `test_event_code` parameter from the codebase.
+3. **Commit & Push Directly:** Do NOT create a PR. Commit directly to the current branch:
+   - `git commit -am "chore(capi): inject test_event_code for validation"`
+   - `git commit -am "chore(capi): remove test_event_code after validation"`
+   - `git push origin <branch>`
+4. Inform the advertiser that the code has been pushed and is ready for immediate testing/deployment.
 
 ### Phase 7: Deliver Report
 
@@ -159,7 +169,7 @@ Use the `message` tool with `type: result`:
 
 **Implementation Guidance:** If the repository has no CAPI implementation, the Developer Action Plan MUST provide complete code to implement it. Recommend the **Parameter Builder Library** (`capi-param-builder`) as the primary method for new setups, as it handles cookie extraction, IP address formatting, and PII hashing automatically.
 
-**Test Event Code:** If the advertiser provides a `test_event_code` (e.g., `TEST12345`), you MUST include it in all generated code snippets in the Developer Action Plan. This allows the advertiser to immediately verify the implementation in the Events Manager Test Events tab.
+**Test Event Code:** If the advertiser provides a `test_event_code` (e.g., `TEST12345`), you MUST include it in all generated code snippets in the Developer Action Plan. If they ask to inject it directly, modify the repo files and push the commit immediately without a PR.
 
 **Parameter Builder Library (PBL) Workflow:**
 When recommending PBL, explain the combined Client + Server workflow:
