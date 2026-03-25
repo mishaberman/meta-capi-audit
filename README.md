@@ -103,7 +103,9 @@ For setups that prefer not to use the Parameter Builder Library, the skill provi
 
 ### 6. Live Testing Support
 
-When a `Test Event Code` is provided (e.g., `TEST12345`), the skill weaves it into every generated code snippet and PR. The `test_event_code` parameter is placed at the top level of the CAPI payload alongside `data` and `access_token`, so events appear in the Events Manager Test Events tab within 30 seconds of deployment. Once testing is complete, the advertiser simply removes the parameter.
+When a `Test Event Code` is provided (e.g., `TEST12345`), the skill weaves it into every generated code snippet and PR. The `test_event_code` parameter is placed at the top level of the CAPI payload alongside `data` and `access_token`, so events appear in the Events Manager Test Events tab within 30 seconds of deployment. 
+
+If `Create PR: true` was requested, the skill automatically generates a **secondary Cleanup PR** that removes the `test_event_code` from the codebase. The advertiser can merge the main PR, validate the events in Events Manager, and then immediately merge the Cleanup PR to safely remove the test code before going to production.
 
 ---
 

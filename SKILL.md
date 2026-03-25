@@ -174,12 +174,22 @@ If the advertiser requested `Create PR: true`:
 6. Create the PR using the GitHub CLI: `gh pr create --title "Optimize Meta CAPI Implementation" --body-file /home/ubuntu/pr_body.md`
 7. Note the PR URL to include in the final delivery.
 
-### Phase 7: Deliver Report
+### Phase 7: Test Event Code Cleanup PR (If Applicable)
+
+If a `Test Event Code` was provided AND `Create PR: true` was requested:
+1. Create a second branch from the target branch: `git checkout -b chore/remove-capi-test-code`
+2. Remove the `test_event_code` parameter from all files where it was just added.
+3. Commit the removal: `git commit -m "chore(capi): remove test_event_code after validation"`
+4. Push the branch to the remote repository.
+5. Create a second PR: `gh pr create --title "Chore: Remove CAPI Test Event Code" --body "This PR removes the \`test_event_code\` parameter from the CAPI payload. Merge this PR **only after** you have validated the events in the Events Manager Test Events tab using the main optimization PR."`
+6. Note this second PR URL to include in the final delivery as the "Cleanup PR".
+
+### Phase 8: Deliver Report
 
 Use the `message` tool with `type: result`:
 1. Attach `/home/ubuntu/meta_capi_audit_report.md`.
 2. In the message text, provide a concise summary: CAPI status, score, number of issues by priority, and the single most impactful action to take first.
-3. If a PR was created, prominently include the link to the GitHub Pull Request.
+3. If PRs were created, prominently include the links to both the main Optimization PR and the Cleanup PR (if applicable).
 
 ## Key Rules
 
