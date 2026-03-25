@@ -102,7 +102,7 @@ Use the `match` tool (`grep` action) and `file` tool (`read` action with line ra
 - **CRITICAL:** Emphasize the collection of the Click ID (`fbc`). The server should extract it from the `_fbc` cookie or receive it from the frontend.
 - Check for High PII: `em` (email) or `ph` (phone).
 - Check for Medium PII: `fn`, `ln`, `ct`, `st`, `zp`.
-- **CRITICAL:** All PII (`em`, `ph`, `fn`, `ln`, etc.) MUST be SHA-256 hashed. Foundation parameters (`client_ip_address`, `client_user_agent`, `fbc`, `fbp`) MUST NOT be hashed.
+- **CRITICAL:** If PII (`em`, `ph`, `fn`, `ln`, etc.) is being sent, it MUST be SHA-256 hashed. If no PII is being collected at all, do NOT flag "missing hashing" as an issue — the issue is the missing PII itself. Foundation parameters (`client_ip_address`, `client_user_agent`, `fbc`, `fbp`) MUST NOT be hashed.
 - **Invalid Combinations:** Flag if the payload only contains broad combinations like `ct + country + st + zp + ge + client_user_agent` as these will be rejected by Meta.
 
 **3c. Deduplication Logic**
