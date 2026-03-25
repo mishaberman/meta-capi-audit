@@ -2,7 +2,7 @@
 """
 Meta Conversions API (CAPI) Repository Audit Scanner
 Scans a codebase specifically for server-side Meta CAPI implementation patterns.
-Supports Direct HTTP, Meta Business SDK, Parameter Builder Library, and Partner Integrations.
+Supports Direct HTTP API and Meta Business SDK. Also detects Parameter Builder Library usage.
 Outputs a structured JSON with findings, detected events, and quality indicators.
 """
 import os
@@ -57,14 +57,7 @@ CAPI_PATTERNS = {
         (r"getFbp\(\)", "Parameter Builder getFbp"),
         (r"getClientIpAddress\(\)", "Parameter Builder getClientIpAddress"),
     ],
-    "partner_integrations": [
-        (r"shopify-api-node", "Shopify API Node (potential CAPI)"),
-        (r"@shopify/shopify-api", "Shopify API (potential CAPI)"),
-        (r"facebook-for-woocommerce", "WooCommerce Facebook Plugin"),
-        (r"WC_Facebookcommerce", "WooCommerce Facebook Class"),
-        (r"gtm-server-side", "GTM Server-Side"),
-        (r"facebook_conversions_api", "Tealium/Segment CAPI Destination"),
-    ],
+
     "payload_required": [
         (r"['\"]?event_name['\"]?\s*[:=]", "event_name field"),
         (r"['\"]?event_time['\"]?\s*[:=]", "event_time field"),
@@ -196,8 +189,7 @@ def detect_tech_stack(repo_path):
                         stack["integrations"].append("Meta Business SDK (Node.js)")
                     if "capi-param-builder" in deps:
                         stack["integrations"].append("Parameter Builder Library (Node.js)")
-                    if "@shopify/shopify-api" in deps:
-                        stack["integrations"].append("Shopify API")
+
                 except Exception:
                     pass
             elif f == "requirements.txt" or f == "Pipfile":
@@ -308,8 +300,7 @@ def audit_repo(repo_path):
 
     has_capi = bool(capi_findings.get("endpoint") or capi_findings.get("sdk_python") or
                     capi_findings.get("sdk_node") or capi_findings.get("sdk_php") or
-                    capi_findings.get("sdk_ruby") or capi_findings.get("sdk_classes") or
-                    capi_findings.get("param_builder") or capi_findings.get("partner_integrations"))
+                    capi_findings.get("sdk_ruby") or capi_findings.get("sdk_classes"))
 
     capi_status = "Implemented" if has_capi else "Not Found"
 
@@ -324,12 +315,9 @@ def audit_repo(repo_path):
     capi_required_fields = list({m["description"] for m in capi_findings.get("payload_required", [])})
 
     # CAPI SDK method
+    # Determine the primary CAPI method (Direct HTTP or SDK)
     capi_method = "None"
-    if capi_findings.get("param_builder"):
-        capi_method = "Parameter Builder Library"
-    elif capi_findings.get("partner_integrations"):
-        capi_method = "Partner Integration (e.g., Shopify, GTM)"
-    elif capi_findings.get("sdk_python"):
+    if capi_findings.get("sdk_python"):
         capi_method = "Meta Business SDK (Python)"
     elif capi_findings.get("sdk_node"):
         capi_method = "Meta Business SDK (Node.js)"
@@ -340,6 +328,9 @@ def audit_repo(repo_path):
     elif capi_findings.get("endpoint"):
         capi_method = "Direct HTTP API"
 
+    # Parameter Builder Library (assist, not a CAPI method itself)
+    uses_param_builder = bool(capi_findings.get("param_builder"))
+
     # Cookie handling
     has_cookie_handling = bool(cookie_findings)
 
@@ -348,6 +339,7 @@ def audit_repo(repo_path):
         "tech_stack": tech_stack,
         "capi_status": capi_status,
         "capi_method": capi_method,
+        "uses_parameter_builder_library": uses_param_builder,
         "capi_required_fields": capi_required_fields,
         "capi_user_data_fields": user_data_fields,
         "deduplication_status": dedup_status,

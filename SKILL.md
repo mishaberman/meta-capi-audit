@@ -1,6 +1,6 @@
 ---
 name: meta-capi-audit
-description: Audits a GitHub repository's source code for Meta Conversions API (CAPI) implementation quality, onboarding status, and Event Match Quality (EMQ) optimization. Clones the repo, scans backend code for CAPI payloads, user data hashing, deduplication logic, and security. Supports multiple CAPI backend methods (Direct HTTP, Meta Business SDK, Parameter Builder Library, Partner Integrations). Produces a scored report with business impact analysis and step-by-step developer action plans for server-side improvements, including actual implementation code using the Parameter Builder Library or pure HTTP calls.
+description: Audits a GitHub repository's source code for Meta Conversions API (CAPI) implementation quality, onboarding status, and Event Match Quality (EMQ) optimization. Clones the repo, scans backend code for CAPI payloads, user data hashing, deduplication logic, and security. Supports multiple CAPI backend methods (Direct HTTP, Meta Business SDK). Produces a scored report with business impact analysis and step-by-step developer action plans for server-side improvements, including actual implementation code using the Parameter Builder Library or pure HTTP calls.
 ---
 
 # Meta Conversions API (CAPI) Code Audit & Implementation Skill
@@ -49,12 +49,14 @@ Identify the backend tech stack by checking for framework markers. This determin
 
 | Marker File / Pattern | Tech Stack | Expected CAPI Method |
 |----------------------|------------|----------------------|
-| `package.json` with `express` | Node.js / Express | `facebook-nodejs-business-sdk`, `capi-param-builder`, or `fetch`/`axios` |
-| `package.json` with `next` | Next.js API Routes | `facebook-nodejs-business-sdk`, `capi-param-builder`, or `fetch` |
-| `requirements.txt` with `django` | Python / Django | `facebook_business` SDK, `capi-param-builder`, or `requests` |
-| `composer.json` | PHP / Laravel | `facebook/php-business-sdk`, `capi-param-builder`, or `curl` |
-| `Gemfile` with `rails` | Ruby on Rails | `facebookbusiness` SDK, `capi-param-builder`, or `Net::HTTP` |
-| `package.json` with `@shopify/shopify-api` | Shopify Custom App | Shopify Webhooks + Direct HTTP API |
+| `package.json` with `express` | Node.js / Express | `facebook-nodejs-business-sdk` or `fetch`/`axios` to Graph API |
+| `package.json` with `next` | Next.js API Routes | `facebook-nodejs-business-sdk` or `fetch` to Graph API |
+| `requirements.txt` with `django` | Python / Django | `facebook_business` SDK or `requests` to Graph API |
+| `requirements.txt` with `flask`/`fastapi` | Python / Flask / FastAPI | `facebook_business` SDK or `requests` to Graph API |
+| `composer.json` | PHP / Laravel | `facebook/php-business-sdk` or `curl` to Graph API |
+| `Gemfile` with `rails` | Ruby on Rails | `facebookbusiness` SDK or `Net::HTTP` to Graph API |
+
+Also check if the **Parameter Builder Library** (`capi-param-builder`) is installed as a dependency. This is not a CAPI method itself, but an assist library that handles cookie extraction, IP formatting, and PII hashing for any of the above methods.
 
 ### Phase 2: Automated Code Scanning
 
@@ -69,7 +71,7 @@ Read `capi_audit_results.json` with the `file` tool. The script returns:
 | Field | What It Tells You |
 |-------|------------------|
 | `capi_status` | Implemented, Partial, or Not Found |
-| `capi_method` | Direct HTTP API, Node SDK, Python SDK, Parameter Builder Library, Partner Integration, etc. |
+| `capi_method` | Direct HTTP API or Meta Business SDK (Node/Python/PHP/Ruby/Java). Also flags if Parameter Builder Library is used as an assist. |
 | `detected_server_events` | List of events sent via CAPI |
 | `user_data_fields` | Which customer information parameters are collected |
 | `has_hashing` | Whether SHA-256 hashing is used for PII |
@@ -81,7 +83,7 @@ Read `capi_audit_results.json` with the `file` tool. The script returns:
 Use the `match` tool (`grep` action) and `file` tool (`read` action with line ranges) to inspect the specific backend files identified in Phase 2. Evaluate each dimension:
 
 **3a. CAPI Payload Construction & Backend Method**
-- Identify the exact backend method used: Direct HTTP API, Meta Business SDK, Parameter Builder Library, or a Partner Integration (e.g., Shopify, WooCommerce, GTM Server-Side).
+- Identify the exact backend method used: **Direct HTTP API** (raw `fetch`/`axios`/`requests`/`curl` calls to `graph.facebook.com`) or **Meta Business SDK** (using typed classes like `EventRequest`, `ServerEvent`, `UserData`). Also note if the Parameter Builder Library is being used as an assist.
 - Check the server payload for required fields: `event_name`, `event_time`, `action_source` (must be `"website"` for web events), `event_source_url`, `user_data`.
 - Are events sent asynchronously or in batches to avoid blocking the main thread?
 

@@ -7,11 +7,13 @@ It acts as an expert Meta Solutions Engineer, scanning the entire codebase to ev
 ## What It Does
 
 ### 1. Multi-Framework Code Scanning
-The skill clones the repository and automatically detects the backend tech stack (Node/Express, Next.js, Django, Flask, PHP/Laravel, Rails, Shopify, etc.). It runs a specialized scanner with 50+ regex patterns to detect:
-- **CAPI Endpoints:** Direct HTTP API calls to `graph.facebook.com`
-- **SDK Usage:** Meta Business SDKs (`facebook-nodejs-business-sdk`, `facebook_business`, etc.)
-- **Parameter Builder Library:** Detection of `capi-param-builder` workflows
-- **Partner Integrations:** Shopify, WooCommerce, and GTM Server-Side connectors
+The skill clones the repository and automatically detects the backend tech stack (Node/Express, Next.js, Django, Flask, FastAPI, PHP/Laravel, Rails). It runs a specialized scanner with 50+ regex patterns to detect the two primary CAPI integration methods:
+- **Direct HTTP API:** Raw `fetch`/`axios`/`requests`/`curl` calls to `graph.facebook.com`
+- **Meta Business SDK:** Official SDKs (`facebook-nodejs-business-sdk`, `facebook_business`, `facebook/php-business-sdk`, etc.) using typed classes like `EventRequest`, `ServerEvent`, and `UserData`
+
+The scanner also flags whether the **Parameter Builder Library** (`capi-param-builder`) is being used as an assist library for cookie extraction, IP formatting, and PII hashing.
+
+*Note: This skill audits direct integrations only. Partner integrations (Shopify, WooCommerce, GTM Server-Side) are out of scope.*
 
 ### 2. Deep Dive Analysis & Scoring
 It evaluates the implementation against Meta's best practices and calculates a **CAPI Quality Score (0–100)** based on:

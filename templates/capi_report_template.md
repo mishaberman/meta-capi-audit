@@ -17,7 +17,7 @@
 
 | Dimension | Status | Notes |
 |-----------|--------|-------|
-| Implementation Method | {Direct API / SDK / Parameter Builder / None} | {Details} |
+| Implementation Method | {Direct HTTP API / Meta Business SDK / None} | {Details; also note if Parameter Builder Library is used as an assist} |
 | Deduplication (`event_id`) | {Configured / Not Configured} | {Details} |
 | SHA-256 Hashing | {Yes / No} | {Which fields} |
 | Access Token Security | {Secure / At Risk} | {Env var or hardcoded} |

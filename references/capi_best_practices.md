@@ -10,10 +10,14 @@ A **CAPI-only setup** is acceptable but less preferred. It misses real-time brow
 
 ## Implementation Methods
 
-1. **Parameter Builder Library (Recommended):** A lightweight SDK (`capi-param-builder`) that automatically handles cookie extraction, IP address formatting (IPv6 preferred), and PII hashing. It uses a combined client-side and server-side workflow to maximize match keys.
-2. **Meta Business SDK:** The official SDKs (Node.js, Python, PHP, Ruby, Java) that provide strongly typed classes (`EventRequest`, `ServerEvent`, `UserData`) and automatic hashing.
-3. **Direct HTTP API:** Pure HTTP requests (`fetch`, `axios`, `requests`) to `graph.facebook.com/v{version}/{pixel_id}/events`. Requires manual hashing and cookie extraction.
-4. **Partner Integrations:** Built-in solutions like Shopify, WooCommerce, or GTM Server-Side.
+There are two primary methods for making CAPI calls directly from your own server code:
+
+1. **Direct HTTP API:** Pure HTTP requests (`fetch`, `axios`, `requests`, `curl`) to `graph.facebook.com/v{version}/{pixel_id}/events`. This is the most flexible approach but requires manual hashing, cookie extraction, and payload construction.
+2. **Meta Business SDK:** The official SDKs (Node.js, Python, PHP, Ruby, Java) that provide strongly typed classes (`EventRequest`, `ServerEvent`, `UserData`) and handle some of the payload construction for you.
+
+In addition, the **Parameter Builder Library** (`capi-param-builder`) is an assist library that can be used alongside either method above. It automatically handles cookie extraction, IP address formatting (IPv6 preferred), PII normalization and hashing, and uses a combined client-side and server-side workflow to maximize match keys. It is the recommended assist for new setups.
+
+*Note: Partner integrations (Shopify, WooCommerce, GTM Server-Side, etc.) are out of scope for this skill. This skill audits direct integrations only.*
 
 ## Event Match Quality (EMQ)
 
