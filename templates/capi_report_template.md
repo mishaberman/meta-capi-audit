@@ -11,9 +11,22 @@
 ## 1. Executive Summary
 
 **CAPI Setup Status:** {Implemented / Partial / Not Found}
-**CAPI Quality Score:** {score}/100 — {rating}
 
 {Write 2–3 sentences summarizing the most important findings regarding the server-side setup: what is working well, what the biggest gap is, and the single most impactful action to take. If CAPI is not found, explicitly state that implementation code is provided below.}
+
+## 2. What's Working Well
+
+*   {Highlight correctly implemented features, e.g., "Deduplication correctly handled on Purchase route"}
+*   {Highlight correctly implemented features, e.g., "Email and Phone are properly hashed"}
+*   {Highlight correctly implemented features, e.g., "CAPI payload structure is valid"}
+
+## 3. What Needs Improvement
+
+*   {Highlight gaps or errors, e.g., "Missing currency parameter on AddToCart"}
+*   {Highlight gaps or errors, e.g., "fbc cookie not extracted"}
+*   {Highlight gaps or errors, e.g., "Deduplication missing on non-Purchase events"}
+
+## 4. CAPI Implementation Status
 
 | Dimension | Status | Notes |
 |-----------|--------|-------|
@@ -24,7 +37,7 @@
 
 ---
 
-## 2. Server-Side Event Inventory
+## 5. Server-Side Event Inventory
 
 ### Detected CAPI Events
 
@@ -40,7 +53,7 @@ For each event sent from the server, we analyze the Custom Data (e.g., value, cu
 
 ---
 
-## 3. EMQ & User Data Analysis
+## 6. EMQ & User Data Analysis
 
 This section evaluates the customer information parameters sent via CAPI, which directly determine Event Match Quality (EMQ). EMQ scores of 6.0+ are recommended for decreasing CPA, and 5.0+ is the threshold for CAPI Qualified Revenue.
 
@@ -57,7 +70,7 @@ This section evaluates the customer information parameters sent via CAPI, which 
 
 ---
 
-## 4. Click ID (`fbc`) Deep Dive
+## 7. Click ID (`fbc`) Deep Dive
 
 The Click ID (`fbc`) is a **HIGH priority** parameter for identity matching, on par with hashed email. It is critical for attributing conversions that originate from Meta ads.
 
@@ -67,7 +80,7 @@ The Click ID (`fbc`) is a **HIGH priority** parameter for identity matching, on 
 
 ---
 
-## 5. Improvement Opportunities
+## 8. Improvement Opportunities
 
 ### Critical Priority
 
@@ -89,7 +102,7 @@ The Click ID (`fbc`) is a **HIGH priority** parameter for identity matching, on 
 
 ---
 
-## 6. Developer Action Plan
+## 9. Developer Action Plan
 
 *(If CAPI is not implemented, provide full implementation code using the Parameter Builder Library or Direct HTTP API. If CAPI is implemented, provide the specific fixes needed.)*
 
@@ -114,7 +127,7 @@ The Click ID (`fbc`) is a **HIGH priority** parameter for identity matching, on 
 
 ---
 
-## 7. Testing & Validation
+## 10. Testing & Validation
 
 Once the changes are deployed, validate the setup using these tools:
 
@@ -124,7 +137,7 @@ Once the changes are deployed, validate the setup using these tools:
 
 ---
 
-## 8. Summary & Next Steps
+## 11. Summary & Next Steps
 
 **Immediate Actions (This Sprint):**
 {Top 1–3 actions that will have the biggest impact}

@@ -1,13 +1,13 @@
 ---
 name: meta-capi-audit
-description: Audits a GitHub repository's source code for Meta Conversions API (CAPI) implementation quality, onboarding status, and Event Match Quality (EMQ) optimization. Clones the repo, scans backend code for CAPI payloads, user data hashing, deduplication logic, and security. Supports multiple CAPI backend methods (Direct HTTP, Meta Business SDK). Produces a scored report with business impact analysis and step-by-step developer action plans for server-side improvements, including actual implementation code using the Parameter Builder Library or pure HTTP calls.
+description: Audits a GitHub repository's source code for Meta Conversions API (CAPI) implementation quality, onboarding status, and Event Match Quality (EMQ) optimization. Clones the repo, scans backend code for CAPI payloads, user data hashing, deduplication logic across all pages, and security. Supports multiple CAPI backend methods (Direct HTTP, Meta Business SDK). Produces a diagnostic report highlighting what's working well and what needs improvement, along with step-by-step developer action plans for server-side fixes, including actual implementation code using the Parameter Builder Library or pure HTTP calls.
 ---
 
 # Meta Conversions API (CAPI) Code Audit & Implementation Skill
 
 ## Purpose
 
-Analyze a GitHub repository to determine the current implementation status of the Meta Conversions API (server-side). Produce a comprehensive diagnostic report that scores the CAPI setup, evaluates Event Match Quality (EMQ) potential based on user data parameters, checks deduplication logic, and provides file-specific, code-level developer instructions to improve or implement the server-side integration.
+Analyze a GitHub repository to determine the current implementation status of the Meta Conversions API (server-side). Produce a comprehensive diagnostic report that highlights what is currently working well and what needs improvement. The audit evaluates Event Match Quality (EMQ) potential based on user data parameters, verifies deduplication logic across all pages/routes, validates value and currency parameters, and provides file-specific, code-level developer instructions to improve or implement the server-side integration.
 
 This skill supports auditing existing setups AND providing implementation guidance for new setups using pure HTTP calls, the Meta Business SDK, or the CAPI Parameter Builder Library.
 
@@ -85,6 +85,7 @@ Use the `match` tool (`grep` action) and `file` tool (`read` action with line ra
 **3a. CAPI Payload Construction & Backend Method**
 - Identify the exact backend method used: **Direct HTTP API** (raw `fetch`/`axios`/`requests`/`curl` calls to `graph.facebook.com`) or **Meta Business SDK** (using typed classes like `EventRequest`, `ServerEvent`, `UserData`). Also note if the Parameter Builder Library is being used as an assist.
 - Check the server payload for required fields: `event_name`, `event_time`, `action_source` (must be `"website"` for web events), `event_source_url`, `user_data`.
+- **Value & Currency Validation:** For events like `Purchase`, `AddToCart`, or `InitiateCheckout`, verify that `value` and `currency` are correctly populated in the `custom_data` object.
 - Are events sent asynchronously or in batches to avoid blocking the main thread?
 
 **3b. User Data & EMQ Optimization**
@@ -98,65 +99,28 @@ Use the `match` tool (`grep` action) and `file` tool (`read` action with line ra
 **3c. Deduplication Logic**
 - Does the CAPI payload include `event_id`?
 - How is `event_id` generated? (It should ideally be passed from the frontend to ensure it exactly matches the browser pixel's `eventID`).
+- **Cross-Page Verification:** Check if deduplication is correctly handled across *all* relevant pages and routes where events are fired, not just a single checkout page.
 
 **3d. Security**
 - Is the access token stored securely (environment variable) or hardcoded?
 - Is the CAPI call made from a true backend server, or is it exposed in client-side code? (Client-side CAPI is a critical security flaw).
 
-### Phase 4: Scoring
-
-Calculate a CAPI Quality Score (0–100) based on the findings:
-
-```
-Start at 100. Deduct points for each gap:
-
-SETUP STATUS
-  No CAPI implementation found:                -100 (Stop here)
-  CAPI implemented client-side (exposed):      -40
-
-PAYLOAD STRUCTURE
-  Missing action_source="website":             -10
-  Missing event_source_url:                    -5
-  Missing event_time:                          -5
-
-EMQ / USER DATA
-  Missing client_ip_address:                   -15 (Critical for IDP)
-  Missing client_user_agent:                   -10
-  Missing fbp/fbc cookie forwarding:           -10
-  No email or phone in user_data:              -15
-  No hashing implementation found:             -20 (PII sent in plaintext is rejected)
-  No Medium PII (fn, ln, etc.):                -5
-
-DEDUPLICATION
-  No event_id in server payload:               -15
-
-SECURITY
-  Access token hardcoded in source:            -20
-
-Minimum score: 0
-```
-
-**Score Interpretation:**
-- **85–100 (Excellent):** Robust server-side setup, high EMQ potential, secure.
-- **70–84 (Good):** Solid foundation, missing some user data or deduplication.
-- **50–69 (Needs Work):** Significant gaps affecting match quality or deduplication.
-- **0–49 (Critical):** Non-functional, insecure, or severely incomplete setup.
-
-### Phase 5: Report Generation
+### Phase 4: Report Generation
 
 Generate a Markdown report saved to `/home/ubuntu/meta_capi_audit_report.md`. Use the template at `/home/ubuntu/skills/meta-capi-audit/templates/capi_report_template.md` as a structural guide.
 
 **Mandatory Report Sections:**
 
-1. **Executive Summary** — CAPI status, score, 2–3 sentence overview.
-2. **CAPI Implementation Status** — Table showing Method, Deduplication, Hashing, and Security.
-3. **Server-Side Event Inventory** — List of events sent via CAPI, detailing Custom Data and User Data parameters for each.
-4. **EMQ & User Data Analysis** — Table evaluating `client_ip_address`, `client_user_agent`, `fbc`, `fbp`, and PII. State the priority level and impact of each missing field, referencing [Meta's Customer Information Parameters documentation](https://developers.facebook.com/docs/marketing-api/conversions-api/parameters/customer-information-parameters).
-5. **Click ID (`fbc`) Deep Dive** — Dedicated section emphasizing the importance of `fbc` collection and inclusion in the server payload.
-6. **Improvement Opportunities** — Prioritized list (Critical → High → Medium) with business impact.
-7. **Developer Action Plan** — Exact file paths, current code, and corrected code snippets for backend fixes. If no CAPI exists, provide full implementation code using the Parameter Builder Library or Direct HTTP API.
+1. **Executive Summary** — CAPI status, 2–3 sentence overview of the setup.
+2. **What's Working Well** — Bulleted list of correctly implemented features (e.g., "Deduplication correctly handled on Purchase route", "Email and Phone are properly hashed").
+3. **What Needs Improvement** — Bulleted list of gaps or errors (e.g., "Missing currency parameter on AddToCart", "fbc cookie not extracted").
+4. **CAPI Implementation Status** — Table showing Method, Deduplication, Hashing, and Security.
+5. **Server-Side Event Inventory** — List of events sent via CAPI, detailing Custom Data (including value/currency checks) and User Data parameters for each.
+6. **EMQ & User Data Analysis** — Table evaluating `client_ip_address`, `client_user_agent`, `fbc`, `fbp`, and PII. State the priority level and impact of each missing field, referencing [Meta's Customer Information Parameters documentation](https://developers.facebook.com/docs/marketing-api/conversions-api/parameters/customer-information-parameters).
+7. **Click ID (`fbc`) Deep Dive** — Dedicated section emphasizing the importance of `fbc` collection and inclusion in the server payload.
+8. **Developer Action Plan** — Exact file paths, current code, and corrected code snippets for backend fixes. If no CAPI exists, provide full implementation code using the Parameter Builder Library or Direct HTTP API.
 
-### Phase 6: Pull Request Creation (If Requested)
+### Phase 5: Pull Request Creation (If Requested)
 
 If the advertiser requested `Create PR: true`:
 1. Create a new branch from the target branch: `git checkout -b fix/meta-capi-optimization`
@@ -174,7 +138,7 @@ If the advertiser requested `Create PR: true`:
 6. Create the PR using the GitHub CLI: `gh pr create --title "Optimize Meta CAPI Implementation" --body-file /home/ubuntu/pr_body.md`
 7. Note the PR URL to include in the final delivery.
 
-### Phase 7: Test Event Code Cleanup PR (If Applicable)
+### Phase 6: Test Event Code Cleanup PR (If Applicable)
 
 If a `Test Event Code` was provided AND `Create PR: true` was requested:
 1. Create a second branch from the target branch: `git checkout -b chore/remove-capi-test-code`
@@ -184,11 +148,11 @@ If a `Test Event Code` was provided AND `Create PR: true` was requested:
 5. Create a second PR: `gh pr create --title "Chore: Remove CAPI Test Event Code" --body "This PR removes the \`test_event_code\` parameter from the CAPI payload. Merge this PR **only after** you have validated the events in the Events Manager Test Events tab using the main optimization PR."`
 6. Note this second PR URL to include in the final delivery as the "Cleanup PR".
 
-### Phase 8: Deliver Report
+### Phase 7: Deliver Report
 
 Use the `message` tool with `type: result`:
 1. Attach `/home/ubuntu/meta_capi_audit_report.md`.
-2. In the message text, provide a concise summary: CAPI status, score, number of issues by priority, and the single most impactful action to take first.
+2. In the message text, provide a concise summary: CAPI status, what's working well, what needs improvement, and the single most impactful action to take first.
 3. If PRs were created, prominently include the links to both the main Optimization PR and the Cleanup PR (if applicable).
 
 ## Key Rules

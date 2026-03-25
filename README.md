@@ -1,6 +1,6 @@
 # Meta Conversions API (CAPI) Audit Skill
 
-**meta-capi-audit** is an autonomous AI skill that audits, scores, and fixes Meta Conversions API (CAPI) implementations directly from an advertiser's GitHub repository. It acts as an expert Meta Solutions Engineer — scanning the entire codebase to evaluate server-side tracking quality, Event Match Quality (EMQ) potential, deduplication logic, and security posture. It produces a scored diagnostic report with exact code-level fixes, and can automatically submit a Pull Request with the corrections applied.
+**meta-capi-audit** is an autonomous AI skill that audits and fixes Meta Conversions API (CAPI) implementations directly from an advertiser's GitHub repository. It acts as an expert Meta Solutions Engineer — scanning the entire codebase to evaluate server-side tracking quality, Event Match Quality (EMQ) potential, deduplication logic across all pages, and security posture. It produces a diagnostic report highlighting what's working well and what needs improvement, along with exact code-level fixes, and can automatically submit a Pull Request with the corrections applied.
 
 This skill focuses exclusively on **direct CAPI integrations** (Direct HTTP API and Meta Business SDK). Partner integrations such as Shopify, WooCommerce, and GTM Server-Side are out of scope.
 
@@ -42,28 +42,19 @@ It then runs a specialized Python scanner with 50+ regex patterns to detect the 
 
 The scanner also flags whether the **Parameter Builder Library** (`capi-param-builder`) is installed as a dependency. This is not a CAPI method itself, but an assist library that handles cookie extraction, IP address formatting (IPv6 preferred), and PII normalization/hashing automatically.
 
-### 2. Deep Dive Analysis and Scoring
+### 2. Deep Dive Analysis
 
 After the automated scan, the skill performs a manual deep dive into the flagged files and evaluates five dimensions:
 
-**Payload Structure** — Checks for required fields (`event_name`, `event_time`, `action_source`, `event_source_url`) and whether events are sent asynchronously to avoid blocking the main thread.
+**Payload Structure** — Checks for required fields (`event_name`, `event_time`, `action_source`, `event_source_url`) and whether events are sent asynchronously to avoid blocking the main thread. Also explicitly validates `value` and `currency` parameters for relevant events.
 
 **EMQ and User Data** — Evaluates Foundation parameters (`client_ip_address`, `client_user_agent`, `fbc`, `fbp`), High PII (`em`, `ph`), and Medium PII (`fn`, `ln`, `ct`, `st`, `zp`). Each missing parameter is mapped to its priority level and impact on event matching, referencing [Meta's Customer Information Parameters documentation](https://developers.facebook.com/docs/marketing-api/conversions-api/parameters/customer-information-parameters).
 
 **Hashing** — Verifies that all PII parameters are SHA-256 hashed after normalization (lowercase, trim whitespace), and that Foundation parameters (`client_ip_address`, `client_user_agent`, `fbc`, `fbp`) are explicitly NOT hashed.
 
-**Deduplication** — Checks whether `event_id` is included in the CAPI payload and whether it matches the browser pixel's `eventID` for proper deduplication within the 48-hour window.
+**Deduplication** — Checks whether `event_id` is included in the CAPI payload and whether it matches the browser pixel's `eventID` for proper deduplication across **all relevant pages and routes**, not just a single checkout page.
 
 **Security** — Flags hardcoded access tokens in source code and detects if CAPI calls are being made from client-side code (which exposes the token and defeats the purpose of server-side tracking).
-
-The findings are scored on a **0–100 scale**:
-
-| Score | Rating | Meaning |
-|-------|--------|---------|
-| 85–100 | Excellent | Robust server-side setup, high EMQ potential, secure |
-| 70–84 | Good | Solid foundation, missing some user data or deduplication |
-| 50–69 | Needs Work | Significant gaps affecting match quality or deduplication |
-| 0–49 | Critical | Non-functional, insecure, or severely incomplete setup |
 
 ### 3. Per-Event Reporting
 
@@ -113,7 +104,7 @@ If `Create PR: true` was requested, the skill automatically generates a **second
 
 | Output | Format | Description |
 |--------|--------|-------------|
-| Diagnostic Report | Markdown file (`meta_capi_audit_report.md`) | Full audit with score, per-event breakdowns, EMQ analysis, and developer action plan |
+| Diagnostic Report | Markdown file (`meta_capi_audit_report.md`) | Full audit with what's working well, what needs improvement, per-event breakdowns, EMQ analysis, and developer action plan |
 | Pull Request | GitHub PR link | Granular commits with before/after diffs and structured changelog (if `Create PR: true`) |
 | Implementation Code | Embedded in report | Complete code using Parameter Builder Library or Direct HTTP API (if no CAPI exists) |
 
@@ -123,7 +114,7 @@ If `Create PR: true` was requested, the skill automatically generates a **second
 
 | File | Purpose |
 |------|---------|
-| `SKILL.md` | Execution instructions, scoring rubric, and key rules for the AI agent |
+| `SKILL.md` | Execution instructions, evaluation criteria, and key rules for the AI agent |
 | `scripts/capi_audit.py` | Automated Python scanner with 50+ regex patterns for CAPI detection |
 | `templates/capi_report_template.md` | Structural template for the Markdown audit report |
 | `references/capi_best_practices.md` | EMQ parameter categories, hashing rules, deduplication logic, and framework-specific code patterns |
