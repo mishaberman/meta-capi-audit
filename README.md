@@ -55,7 +55,7 @@ The scanner also flags whether the **Parameter Builder Library** (`capi-param-bu
 
 After the automated scan, the skill performs a manual deep dive into the flagged files and evaluates five dimensions:
 
-**Payload Structure** — Checks for required fields (`event_name`, `event_time`, `action_source`, `event_source_url`) and whether events are sent asynchronously to avoid blocking the main thread. Also explicitly validates `value` and `currency` parameters for relevant events.
+**Payload Structure** — Checks for required fields (`event_name`, `event_time`, `action_source`, `event_source_url`) and whether events are sent asynchronously to avoid blocking the main thread. Also explicitly validates `value` and `currency` parameters for relevant events, and **compares the browser vs. server custom data payloads** to flag any mismatches (e.g., browser sends value but server does not).
 
 **EMQ and User Data** — Evaluates Foundation parameters (`client_ip_address`, `client_user_agent`, `fbc`, `fbp`), High PII (`em`, `ph`), and Medium PII (`fn`, `ln`, `ct`, `st`, `zp`). Each missing parameter is mapped to its priority level and impact on event matching, referencing [Meta's Customer Information Parameters documentation](https://developers.facebook.com/docs/marketing-api/conversions-api/parameters/customer-information-parameters).
 
@@ -75,19 +75,15 @@ The report includes a detailed breakdown for every detected event, showing two s
 
 The report also includes a dedicated **Click ID (`fbc`) Deep Dive** section that emphasizes the importance of collecting the `fbc` parameter. The `fbc` value is one of the highest-priority matching signals and is considered on par with email. The section covers both cookie-based extraction (`_fbc` cookie) and the `fbclid` URL parameter fallback, including the exact format for constructing the `fbc` value: `fb.1.{timestamp}.{fbclid}`.
 
-### 4. Automated Pull Request Creation
+### 4. Interactive Fix Review & Pull Request Creation
 
-When `Create PR: true` is specified, the skill goes beyond reporting and actually applies the fixes to the code:
+Instead of automatically applying changes, the skill uses an **interactive workflow** to ensure the advertiser remains in control:
 
-1. Creates a new branch (`fix/meta-capi-optimization`) from the target branch.
-2. Applies the exact code changes from the Developer Action Plan to the repository files.
-3. Makes **granular, logical commits** for each specific fix — not one giant commit. Examples:
-   - `fix(capi): add event_id deduplication to frontend and backend`
-   - `feat(capi): add SHA-256 hashing for email and phone parameters`
-   - `fix(capi): correct spelling of action_source parameter`
-   - `feat(capi): extract and forward _fbc and _fbp cookies`
-4. Generates a detailed **PR body** that includes a summary of why the changes improve the integration, a bulleted list of every modification, and **Before/After code diffs** for the most critical changes.
-5. Submits the PR via the GitHub CLI and includes the link in the final delivery.
+1. **Deliver & Ask:** The skill first delivers the audit report and asks: *"Would you like me to automatically apply these fixes and create a Pull Request for you to review?"*
+2. **Apply Fixes:** If accepted, it creates a new branch (`fix/meta-capi-optimization`) and applies the exact code changes from the Developer Action Plan.
+3. **Granular Commits:** It makes logical, separated commits for each specific fix (e.g., `fix(capi): add event_id deduplication`, `feat(capi): add SHA-256 hashing`).
+4. **Detailed PR Body:** It generates a PR body that includes a summary of the improvements, a bulleted changelog, and **Before/After code diffs** for the most critical changes.
+5. **Submit & Follow Up:** It submits the PR and then asks: *"The PR is ready for your review. Once you merge it, would you like me to inject a `test_event_code` so you can verify the events in Events Manager?"*
 
 ### 5. Implementation Guidance for New Setups
 

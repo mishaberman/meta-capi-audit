@@ -45,9 +45,10 @@ For each event sent from the server, we analyze the Custom Data (e.g., value, cu
 
 #### Event: {Event Name} (e.g., Purchase)
 - **File:** `{file_path}` (Line {line})
-- **Custom Data:** `{value, currency, content_ids, etc.}`
+- **Browser Custom Data:** `{value, currency, content_ids, etc.}` (from `fbq` call)
+- **Server Custom Data:** `{value, currency, content_ids, etc.}` (from CAPI payload)
 - **User Data / PII:** `{client_ip_address, client_user_agent, fbc, fbp, em, etc.}`
-- **Issues:** {Any missing required params, especially flag if `fbc` (Click ID) or `client_ip_address` is missing}
+- **Issues:** {Any missing required params, especially flag if `fbc` (Click ID) or `client_ip_address` is missing, or if there is a mismatch between Browser and Server Custom Data}
 
 *(Repeat the above block for every detected server event. If no events are found, list the recommended events to implement based on the business type.)*
 

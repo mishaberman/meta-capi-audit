@@ -95,6 +95,7 @@ Use the `match` tool (`grep` action) and `file` tool (`read` action with line ra
 - Identify the exact backend method used: **Direct HTTP API** (raw `fetch`/`axios`/`requests`/`curl` calls to `graph.facebook.com`) or **Meta Business SDK** (using typed classes like `EventRequest`, `ServerEvent`, `UserData`). Also note if the Parameter Builder Library is being used as an assist.
 - Check the server payload for required fields: `event_name`, `event_time`, `action_source` (must be `"website"` for web events), `event_source_url`, `user_data`.
 - **Value & Currency Validation:** For events like `Purchase`, `AddToCart`, or `InitiateCheckout`, verify that `value` and `currency` are correctly populated in the `custom_data` object.
+- **Browser vs. Server Payload Comparison:** Check if the custom data parameters sent by the browser pixel (e.g., `fbq('track', 'Purchase', {value: 5, currency: 'USD'})`) match the custom data sent by the server. Flag any mismatches (e.g., browser sends value but server does not, or server sends different content_ids).
 - Are events sent asynchronously or in batches to avoid blocking the main thread?
 
 **3b. User Data & EMQ Optimization**
@@ -129,41 +130,30 @@ Generate a Markdown report saved to `/home/ubuntu/meta_capi_audit_report.md`. Us
 7. **Click ID (`fbc`) Deep Dive** — Dedicated section emphasizing the importance of `fbc` collection and inclusion in the server payload.
 8. **Developer Action Plan** — Exact file paths, current code, and corrected code snippets for backend fixes. If no CAPI exists, provide full implementation code using the Parameter Builder Library or Direct HTTP API.
 
-### Phase 5: Pull Request Creation (If Requested)
+### Phase 5: Interactive Fix Review & Pull Request Creation
 
-If the advertiser requested `Create PR: true`:
-1. Create a new branch from the target branch: `git checkout -b fix/meta-capi-optimization`
-2. Apply the exact code changes outlined in the Developer Action Plan directly to the files in `/home/ubuntu/repo_to_audit`.
-3. **Make granular, logical commits** for each specific fix (do NOT make one giant commit). For example:
-   - `git commit -m "fix(capi): add event_id deduplication to frontend and backend"`
-   - `git commit -m "feat(capi): add SHA-256 hashing for email and phone parameters"`
-   - `git commit -m "fix(capi): correct spelling of action_source parameter"`
-   - `git commit -m "feat(capi): extract and forward _fbc and _fbp cookies"`
-4. Push the branch to the remote repository.
-5. **Generate a detailed PR Body:** Create a file at `/home/ubuntu/pr_body.md` that explicitly details the changes made. It MUST include:
-   - A summary of why these changes improve the CAPI integration (e.g., EMQ improvement, deduplication fix).
-   - A "Changes Made" section with a bulleted list of exactly what was modified.
-   - A "File Diffs" section showing the **Before** and **After** code snippets for the most critical changes, so the reviewer can understand the exact logic applied without having to dig through the GitHub diff view.
-6. Create the PR using the GitHub CLI: `gh pr create --title "Optimize Meta CAPI Implementation" --body-file /home/ubuntu/pr_body.md`
-7. Note the PR URL to include in the final delivery.
+Instead of automatically creating a PR, use an interactive workflow to ensure the advertiser controls the changes:
 
-### Phase 6: Instant Test Event Code Injection / Removal
+1. **Deliver the Report First:** Use the `message` tool (`type: ask`) to deliver the audit report (`/home/ubuntu/meta_capi_audit_report.md`) and summarize the findings.
+2. **Ask for Permission:** In the same message, ask the user: *"Would you like me to automatically apply these fixes and create a Pull Request for you to review?"*
+3. **If Accepted:**
+   - Create a new branch: `git checkout -b fix/meta-capi-optimization`
+   - Apply the exact code changes outlined in the Developer Action Plan.
+   - **Make granular, logical commits** for each specific fix (e.g., `fix(capi): add event_id deduplication`, `feat(capi): add SHA-256 hashing`).
+   - Push the branch and create the PR using `gh pr create` with a detailed body (including before/after diffs).
+   - Send a message with the PR link and ask: *"The PR is ready for your review. Once you merge it, would you like me to inject a `test_event_code` so you can verify the events in Events Manager?"*
+4. **If Rejected / Manual:** Acknowledge their choice and offer to help if they have questions while implementing the fixes manually.
 
-If the advertiser requests to inject or remove a test event code directly (without a full audit or PR):
-1. **Inject:** If `Test Event Code` is provided, find the CAPI payload construction in the code and inject `test_event_code: '<CODE>'` at the top level (alongside `data` and `access_token`).
-2. **Remove:** If `Remove Test Code: true` is requested, find and remove the `test_event_code` parameter from the codebase.
-3. **Commit & Push Directly:** Do NOT create a PR. Commit directly to the current branch:
+### Phase 6: Interactive Test Event Code Injection / Removal
+
+If the user agrees to inject a test event code (either after merging the PR, or as a standalone request):
+1. **Ask for the Code:** If they haven't provided one, ask: *"What test event code should I use? (e.g., TEST12345)"*
+2. **Inject:** Find the CAPI payload construction and inject `test_event_code: '<CODE>'` at the top level.
+3. **Commit & Push Directly:** Do NOT create a PR for this temporary testing step. Commit directly to the current deployment branch:
    - `git commit -am "chore(capi): inject test_event_code for validation"`
-   - `git commit -am "chore(capi): remove test_event_code after validation"`
    - `git push origin <branch>`
-4. Inform the advertiser that the code has been pushed and is ready for immediate testing/deployment.
-
-### Phase 7: Deliver Report
-
-Use the `message` tool with `type: result`:
-1. Attach `/home/ubuntu/meta_capi_audit_report.md`.
-2. In the message text, provide a concise summary: CAPI status, what's working well, what needs improvement, and the single most impactful action to take first.
-3. If PRs were created, prominently include the links to both the main Optimization PR and the Cleanup PR (if applicable).
+4. **Wait for Validation:** Tell the user: *"The test code is live. Please trigger some events on your site and check the Events Manager Test Events tab. Let me know when you're done, and I will remove the test code."*
+5. **Remove:** Once they confirm, strip the `test_event_code`, commit (`chore(capi): remove test_event_code`), and push directly.
 
 ## Key Rules
 
