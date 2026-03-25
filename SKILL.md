@@ -86,6 +86,8 @@ Read `capi_audit_results.json` with the `file` tool. The script returns:
 | `has_hashing` | Whether SHA-256 hashing is used for PII |
 | `deduplication_status` | Whether `event_id` is included in the payload |
 | `security_issues` | Hardcoded access tokens |
+| `has_test_event_code` | Whether a `test_event_code` is present in the CAPI payload code |
+| `test_event_code_values` | The actual test code values found (e.g., `TEST12345`) |
 
 ### Phase 3: Deep Dive Analysis
 
@@ -111,7 +113,12 @@ Use the `match` tool (`grep` action) and `file` tool (`read` action with line ra
 - How is `event_id` generated? (It should ideally be passed from the frontend to ensure it exactly matches the browser pixel's `eventID`).
 - **Cross-Page Verification:** Check if deduplication is correctly handled across *all* relevant pages and routes where events are fired, not just a single checkout page.
 
-**3d. Security**
+**3d. Test Event Code Detection**
+- Check if a `test_event_code` is present anywhere in the CAPI payload construction. This parameter should ONLY be present during testing and MUST be removed before production deployment.
+- If found, flag it as a **CRITICAL** issue in the "What Needs Improvement" section. A leftover test code causes all events to be routed to the Test Events tab in Events Manager instead of being processed for ad delivery and attribution.
+- Report the exact file, line number, and the test code value found.
+
+**3e. Security**
 - Is the access token stored securely (environment variable) or hardcoded?
 - Is the CAPI call made from a true backend server, or is it exposed in client-side code? (Client-side CAPI is a critical security flaw).
 
@@ -159,7 +166,9 @@ If the user agrees to inject a test event code (either after merging the PR, or 
 
 **Implementation Guidance:** If the repository has no CAPI implementation, the Developer Action Plan MUST provide complete code to implement it. Recommend the **Parameter Builder Library** (`capi-param-builder`) as the primary method for new setups, as it handles cookie extraction, IP address formatting, and PII hashing automatically.
 
-**Test Event Code:** If the advertiser provides a `test_event_code` (e.g., `TEST12345`), you MUST include it in all generated code snippets in the Developer Action Plan. If they ask to inject it directly, modify the repo files and push the commit immediately without a PR.
+**Test Event Code Detection:** The audit MUST check for any active `test_event_code` in the CAPI payload code. A leftover test code in production is a **CRITICAL** issue because it routes all events to the Test Events tab in Events Manager, meaning they are NOT processed for ad delivery, attribution, or optimization. If found, it MUST appear as the first item in "What Needs Improvement" and the first action in the Developer Action Plan.
+
+**Test Event Code Injection:** If the advertiser provides a `test_event_code` (e.g., `TEST12345`), you MUST include it in all generated code snippets in the Developer Action Plan. If they ask to inject it directly, modify the repo files and push the commit immediately without a PR.
 
 **Parameter Builder Library (PBL) Workflow:**
 When recommending PBL, explain the combined Client + Server workflow:

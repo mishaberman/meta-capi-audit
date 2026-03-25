@@ -64,6 +64,11 @@ CAPI_PATTERNS = {
         (r"['\"]?action_source['\"]?\s*[:=]\s*['\"]website['\"]", "action_source = website"),
         (r"['\"]?event_source_url['\"]?\s*[:=]", "event_source_url field"),
     ],
+    "test_event_code": [
+        (r"['\"]?test_event_code['\"]?\s*[:=]\s*['\"]([^'\"]+)['\"]", "test_event_code with value"),
+        (r"['\"]?test_event_code['\"]?\s*[:=]\s*([A-Za-z0-9_]+)", "test_event_code assignment"),
+        (r"TEST[A-Z0-9]{4,}", "Possible test event code literal"),
+    ],
     "payload_user_data": [
         (r"['\"]?client_ip_address['\"]?\s*[:=]", "client_ip_address"),
         (r"['\"]?client_user_agent['\"]?\s*[:=]", "client_user_agent"),
@@ -334,6 +339,16 @@ def audit_repo(repo_path):
     # Cookie handling
     has_cookie_handling = bool(cookie_findings)
 
+    # Test event code detection
+    test_event_code_findings = capi_findings.get("test_event_code", [])
+    has_test_event_code = bool(test_event_code_findings)
+    test_event_code_values = []
+    if has_test_event_code:
+        for finding in test_event_code_findings:
+            val = finding.get("match", "").strip()
+            if val and val not in test_event_code_values:
+                test_event_code_values.append(val)
+
     summary = {
         "scanned_files": scanned_files,
         "tech_stack": tech_stack,
@@ -346,6 +361,8 @@ def audit_repo(repo_path):
         "has_hashing": bool(hashing_findings),
         "has_cookie_handling": has_cookie_handling,
         "has_hardcoded_token": bool(security_findings),
+        "has_test_event_code": has_test_event_code,
+        "test_event_code_values": test_event_code_values,
         "findings": {
             "capi": dict(capi_findings),
             "hashing": hashing_findings,
@@ -379,4 +396,7 @@ if __name__ == "__main__":
     print(f"Hashing Found: {results['has_hashing']}")
     print(f"Cookie Handling: {results['has_cookie_handling']}")
     print(f"Hardcoded Token: {results['has_hardcoded_token']}")
+    print(f"Test Event Code Present: {results['has_test_event_code']}")
+    if results['test_event_code_values']:
+        print(f"  Values found: {results['test_event_code_values']}")
     print(f"\nResults saved to {args.output}")

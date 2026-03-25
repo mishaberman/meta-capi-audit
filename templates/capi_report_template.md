@@ -25,6 +25,7 @@
 *   {Highlight gaps or errors, e.g., "Missing currency parameter on AddToCart"}
 *   {Highlight gaps or errors, e.g., "fbc cookie not extracted"}
 *   {Highlight gaps or errors, e.g., "Deduplication missing on non-Purchase events"}
+*   {If test_event_code found: "**CRITICAL: Active `test_event_code` (`TESTXXXXX`) found in `file:line`. This MUST be removed before production — events with a test code are routed to the Test Events tab and are NOT processed for ad delivery or attribution.**"}
 
 ## 4. CAPI Implementation Status
 
@@ -34,6 +35,7 @@
 | Deduplication (`event_id`) | {Configured / Not Configured} | {Details} |
 | SHA-256 Hashing | {Yes / No / N/A (No PII collected)} | {Which fields} |
 | Access Token Security | {Secure / At Risk} | {Env var or hardcoded} |
+| Test Event Code | {Not Present / **ACTIVE — REMOVE BEFORE PRODUCTION**} | {If active: value found, file, and line number} |
 
 ---
 
