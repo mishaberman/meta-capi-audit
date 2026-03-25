@@ -73,7 +73,7 @@ The report includes a detailed breakdown for every detected event, showing two s
 
 **User Data / PII** — Parameters like `em`, `ph`, `fn`, `ln`, `fbc`, `fbp`, `client_ip_address`, and `client_user_agent` for both browser-side and server-side. This makes it immediately clear which user data is being sent where, and what gaps exist.
 
-The report also includes a dedicated **Click ID (`fbc`) Deep Dive** section that emphasizes the importance of collecting the `fbc` parameter. The `fbc` value provides a 100% match rate when present and is considered HIGH priority — on par with email. The section covers both cookie-based extraction (`_fbc` cookie) and the `fbclid` URL parameter fallback, including the exact format for constructing the `fbc` value: `fb.1.{timestamp}.{fbclid}`.
+The report also includes a dedicated **Click ID (`fbc`) Deep Dive** section that emphasizes the importance of collecting the `fbc` parameter. The `fbc` value typically provides one of the strongest match rates of any parameter and is considered HIGH priority — on par with email. The section covers both cookie-based extraction (`_fbc` cookie) and the `fbclid` URL parameter fallback, including the exact format for constructing the `fbc` value: `fb.1.{timestamp}.{fbclid}`.
 
 ### 4. Automated Pull Request Creation
 

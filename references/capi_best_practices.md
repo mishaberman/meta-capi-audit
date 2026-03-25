@@ -34,7 +34,7 @@ EMQ measures how well Meta can match events to user profiles for ad optimization
 
 To reach the EMQ threshold, implement parameters in this priority order:
 
-**Foundation (MUST — target 100% coverage):** These are non-PII parameters that should be sent with every event. Missing any of these undermines the entire matching pipeline.
+**Foundation (target near-complete coverage):** These are non-PII parameters that should be sent with every event. Missing any of these undermines the entire matching pipeline.
 
 | Parameter | CAPI Field | Hash? | Impact |
 |-----------|-----------|-------|--------|
@@ -42,20 +42,20 @@ To reach the EMQ threshold, implement parameters in this priority order:
 | User Agent | `client_user_agent` | No | Critical for Identity Prediction (~70% match rate) |
 | Browser ID | `fbp` (from `_fbp` cookie) | No | +0.5–1 EMQ point |
 
-**Click ID (target: match browser coverage):** The `fbc` parameter (from the `_fbc` cookie) provides a 100% match rate when present. It is a **HIGH priority** parameter, on par with email.
+**Click ID (target: match browser coverage):** The `fbc` parameter (from the `_fbc` cookie) typically provides one of the strongest match rates of any parameter when valid. It is a **HIGH priority** parameter, on par with email.
 
 | Parameter | CAPI Field | Hash? | Impact |
 |-----------|-----------|-------|--------|
-| Click ID | `fbc` (from `_fbc` cookie) | No | HIGH priority, 100% match rate |
+| Click ID | `fbc` (from `_fbc` cookie) | No | HIGH priority, very strong match rate when valid |
 
-**High PII (send one close to 100%):** Email and phone are the highest-impact PII parameters. Sending just one of them close to 100% coverage can improve EMQ by 2–3 points.
+**High PII (maximize coverage):** Email and phone are the highest-impact PII parameters. Sending just one of them at high coverage rates can improve EMQ by 2–3 points.
 
 | Parameter | CAPI Field | Hash? | Impact |
 |-----------|-----------|-------|--------|
 | Email | `em` | SHA-256 | +2–3 EMQ points |
 | Phone | `ph` | SHA-256 | +2–3 EMQ points |
 
-**Medium PII (send one close to 100%):** Sending just one medium PII parameter close to 100% adds approximately 0.5 EMQ points.
+**Medium PII (maximize coverage):** Sending just one medium PII parameter at high coverage rates adds approximately 0.5 EMQ points.
 
 | Parameter | CAPI Field | Hash? | Impact |
 |-----------|-----------|-------|--------|
